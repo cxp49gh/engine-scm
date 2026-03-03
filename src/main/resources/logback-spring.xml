@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds"
+	debug="false">
+	<include
+		resource="org/springframework/boot/logging/logback/defaults.xml" />
+	<include
+		resource="org/springframework/boot/logging/logback/console-appender.xml" />
+<!--	<appender name="fileLog"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+		</filter>
+
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<FileNamePattern>${log.path}/normal.%d{yyyy-MM-dd}.log
+			</FileNamePattern>
+			<maxHistory>7</maxHistory>
+		</rollingPolicy>
+
+		<encoder>
+			<charset>UTF-8</charset>
+			<pattern>%d [%t] %p %class %method %line -> %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="BranchBindThreadLog"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+		</filter>
+
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<FileNamePattern>${log.path}/BranchBindThreadLog.%d{yyyy-MM-dd}.log
+			</FileNamePattern>
+			<maxHistory>7</maxHistory>
+		</rollingPolicy>
+
+		<encoder>
+			<charset>UTF-8</charset>
+			<pattern>%d [%t] %p %class %method %line -> %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<logger name="com.kuandeng.data" level="debug"
+		additivity="false">
+		<appender-ref ref="fileLog" />
+	</logger>
+
+	<logger name="com.kuandeng.data.branch.BranchBindThread"
+		level="debug" additivity="false">
+		<appender-ref ref="BranchBindThreadLog" />
+	</logger>-->
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>
+				%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{X-B3-TraceId:-}] [%X{X-B3-SpanId:-}] [%thread] %logger{36} %L - %msg%xEx%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<root level="INFO">
+		<!--<appender-ref ref="fileLog" />-->
+		<appender-ref ref="CONSOLE" />
+
+	</root>
+</configuration>

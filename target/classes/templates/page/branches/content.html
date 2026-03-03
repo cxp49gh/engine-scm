@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/adminlte/plugins/fontawesome-free/css/all.min.css}">
+    <link rel="stylesheet" th:href="@{/adminlte/css/adminlte.min.css}">
+</head>
+
+<body class="p-3">
+<div class="content">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">查询条件</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <input id="branchName" class="form-control" placeholder="分支名">
+                </div>
+
+                <div class="col-md-3">
+                    <input id="businessType" class="form-control" placeholder="业务类型">
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-primary btn-block" onclick="loadData()">
+                        <i class="fas fa-search"></i> 查询
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive p-0">
+            <table class="table table-bordered table-hover">
+                <thead>
+                <tr>
+                    <th>分支</th>
+                    <th>类型</th>
+                    <th>更新时间</th>
+                </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    <div class="card">
+        <div class="card-body clearfix">
+            <ul class="pagination pagination-sm m-0 float-right" id="pagination">
+                <!-- JS 动态生成 -->
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+<script th:src="@{/jquery/jquery.min.js}"></script>
+<script th:src="@{/adminlte/js/adminlte.min.js}"></script>
+<script>
+
+    let pageNumber = 1;
+    let pageSize = 20;
+    let totalPages = 1;
+
+$(function () {
+    // DOM Ready
+    loadData();
+});
+
+    function loadData(page) {
+        if (page) {
+            pageNumber = page;
+        }
+
+        const req = {
+            pageNumber: pageNumber,
+            pageSize: pageSize
+        };
+
+        // 以下字段：有值才传，严格匹配后端校验逻辑
+
+        const branchName = $('#branchName').val();
+        if (!branchName) {
+            req.branchName = branchName;
+        }
+
+        const businessType = $('#businessType').val();
+        if (businessType) {
+            req.businessType = businessType;
+        }
+
+        $.ajax({
+            url: '/branches/_query',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(req),
+            success: function (res) {
+                const data = res.data || {};
+                const list = data.content || [];
+                const total = data.totalElements || 0;
+                renderTable(list);
+                renderPagination(total);
+            }
+        });
+    }
+
+
+    function formatTime(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        const pad = n => n < 10 ? '0' + n : n;
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}
+                ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+
+    function renderTable(list) {
+        let html = '';
+
+        if (list.length === 0) {
+            html = '<tr><td colspan="9" class="text-center text-muted">暂无数据</td></tr>';
+            $('#tbody').html(html);
+            return;
+        }
+
+        list.forEach(r => {
+            html += `<tr>
+                <td>${r.branchName}</td>
+                <td>${r.businessType || ''}</td>
+                <td>${formatTime(r.updateTime)}</td>
+            </tr>`;
+        });
+
+        $('#tbody').html(html);
+    }
+
+
+    function renderPagination(total) {
+        totalPages = Math.ceil(total / pageSize);
+        let html = '';
+
+        if (totalPages <= 1) {
+            $('#pagination').html('');
+            return;
+        }
+
+        // 上一页
+        html += `
+            <li class="page-item ${pageNumber === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                   onclick="loadData(${pageNumber - 1})">«</a>
+            </li>
+        `;
+
+        // 页码（最多显示 5 个）
+        const start = Math.max(1, pageNumber - 2);
+        const end = Math.min(totalPages, pageNumber + 2);
+
+        for (let i = start; i <= end; i++) {
+            html += `
+                <li class="page-item ${i === pageNumber ? 'active' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                       onclick="loadData(${i})">${i}</a>
+                </li>
+            `;
+        }
+
+        // 下一页
+        html += `
+            <li class="page-item ${pageNumber === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                   onclick="loadData(${pageNumber + 1})">»</a>
+            </li>
+        `;
+
+        $('#pagination').html(html);
+    }
+
+</script>
+
+</body>
+</html>

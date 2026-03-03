@@ -1,0 +1,22 @@
+{
+  "groups": [
+    {
+      "name": "info.app",
+      "type": "com.engine.scm.config.BuildInfo",
+      "sourceType": "com.engine.scm.config.BuildInfo"
+    }
+  ],
+  "properties": [
+    {
+      "name": "info.app.name",
+      "type": "java.lang.String",
+      "sourceType": "com.engine.scm.config.BuildInfo"
+    },
+    {
+      "name": "info.app.version",
+      "type": "java.lang.String",
+      "sourceType": "com.engine.scm.config.BuildInfo"
+    }
+  ],
+  "hints": []
+}

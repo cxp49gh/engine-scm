@@ -1,0 +1,18 @@
+#联调打开
+#eureka:
+#  client:
+#    serviceUrl:
+#      defaultZone: http://xxxx/eureka
+
+spring:
+  application:
+    name: engin-scm
+  #联调注释
+#  cloud:
+#    config:
+#      discovery:
+#        enabled: true
+#        serviceId: kd-config-server
+#      name: engin-scm
+#      label: road
+#      profile: prod
