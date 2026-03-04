@@ -2,71 +2,27 @@ package com.engine.scm.template;
 
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
+import java.util.HashMap;
+import java.util.Map;
 @Service
-public class ParamMergeServiceImpl implements ParamMergeService {
+public class ParamMergeServiceImpl {
 
-    @Override
-    public ParamMergeResult merge(
-            RuntimeParamDefinition paramDef,
-            Map<String, Object> templateDefaults,
-            Map<String, Object> runtimeOverrides) {
-
+    public Map<String, Object> merge(
+            Map<String, Object> defaults,
+            Map<String, Object> overrides,
+            RuntimeContext ctx
+    ) {
         Map<String, Object> result = new HashMap<>();
-        List<ParamDiff> diffs = new ArrayList<>();
 
-        Map<String, ParamMeta> metaMap = paramDef.getParams()
-                .stream()
-                .collect(Collectors.toMap(ParamMeta::getName, m -> m));
-
-        // 1️⃣ 初始化：ParamMeta.defaultValue
-        for (ParamMeta meta : metaMap.values()) {
-            if (meta.getDefaultValue() != null) {
-                result.put(meta.getName(), meta.getDefaultValue());
-            }
+        if (ctx != null) {
+            result.putAll(ctx.toMap());
         }
-
-        // 2️⃣ 覆盖：Template 默认参数
-        if (templateDefaults != null) {
-            for (Map.Entry<String, Object> e : templateDefaults.entrySet()) {
-                assertKnownParam(e.getKey(), metaMap);
-                result.put(e.getKey(), e.getValue());
-            }
+        if (defaults != null) {
+            result.putAll(defaults);
         }
-
-        // 3️⃣ 覆盖：Runtime 参数（需校验 overridable）
-        if (runtimeOverrides != null) {
-            for (Map.Entry<String, Object> e : runtimeOverrides.entrySet()) {
-
-                String key = e.getKey();
-                Object newVal = e.getValue();
-
-                ParamMeta meta = metaMap.get(key);
-                assertKnownParam(key, metaMap);
-
-                if (!meta.isOverridable()) {
-                    throw BizException.invalid(
-                            "Param not overridable: " + key);
-                }
-
-                Object oldVal = result.get(key);
-                if (!Objects.equals(oldVal, newVal)) {
-                    diffs.add(new ParamDiff(
-                            key, oldVal, newVal, meta.getRiskLevel()));
-                }
-
-                result.put(key, newVal);
-            }
+        if (overrides != null) {
+            result.putAll(overrides);
         }
-
-        return new ParamMergeResult(result, diffs);
-    }
-
-    private void assertKnownParam(String name, Map<String, ParamMeta> metaMap) {
-        if (!metaMap.containsKey(name)) {
-            throw BizException.invalid("Unknown param: " + name);
-        }
+        return result;
     }
 }

@@ -2,7 +2,7 @@ package com.engine.scm.template;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.engine.scm.other.ParamMergeService;
+import com.engine.scm.template.ParamMergeServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +18,7 @@ public class TemplatePublishServiceImpl
     private final TemplateSnapshotService snapshotService;
 
     private final FreemarkerHelper freemarkerHelper;
-    private final ParamMergeService paramMergeService;
+    private final ParamMergeServiceImpl paramMergeService;
     private final JsonSchemaValidator schemaValidator;
     private final JsonDiffService jsonDiffService;
     private final RiskAssessService riskAssessService;
