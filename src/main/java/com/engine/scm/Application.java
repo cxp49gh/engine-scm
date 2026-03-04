@@ -12,7 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  */
 @EnableDiscoveryClient
 @SpringBootApplication
-@EnableFeignClients(basePackages = {"com.kuandeng"})
+@EnableFeignClients(basePackages = {"com.engine.scm"})
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
