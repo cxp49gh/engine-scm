@@ -60,13 +60,13 @@ public class DryRunServiceImpl implements DryRunService {
 
             // 4️⃣ 参数规则校验
             paramValidator.validate(
-                    mergeResult.getMergedParams(), paramDef);
+                    mergeResult.getParams(), paramDef);
 
             // 5️⃣ Freemarker 渲染
             JsonNode renderedJson =
                     freemarkerHelper.renderJson(
                             snapshot.getTemplateContent(),
-                            mergeResult.getMergedParams()
+                            mergeResult.getParams()
                     );
 
             // 6️⃣ JSON Schema 校验
@@ -83,7 +83,7 @@ public class DryRunServiceImpl implements DryRunService {
             }
 
             return DryRunResult.builder()
-                    .mergedParams(mergeResult.getMergedParams())
+                    .mergedParams(mergeResult.getParams())
                     .renderedJson(renderedJson)
                     .paramDiffs(mergeResult.getDiffs())
                     .riskSummary(riskSummary)

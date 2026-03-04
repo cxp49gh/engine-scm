@@ -1,29 +1,54 @@
-//package com.kuandeng.data.config;
-//
-//import com.kuandeng.data.branch.entities.StandardResponse;
-//import com.kuandeng.data.utils.CustomError;
-//import lombok.extern.slf4j.Slf4j;
-//import org.springframework.web.bind.annotation.ExceptionHandler;
-//import org.springframework.web.bind.annotation.RestControllerAdvice;
-//
-//import javax.servlet.ServletResponse;
-//import javax.servlet.http.HttpServletRequest;
-//import javax.servlet.http.HttpServletResponse;
-//
-///**
-// * @author cuijianxing
-// * 2019-05-22 15:51
-// */
-//@RestControllerAdvice
-//@Slf4j
-//public class GlobalExceptionHandler {
-//
-//    @ExceptionHandler(value = Exception.class)
-//    public StandardResponse<Object> errorHandler(HttpServletRequest request, ServletResponse servletResponse, Exception exception) {
-//        log.error("异常", exception);
-//        HttpServletResponse response = (HttpServletResponse) servletResponse;
-//        String message = String.format("%s,Trace Id:%s", exception.getMessage(), response.getHeaders("X-B3-TraceId"));
-//        return new StandardResponse<Object>().buildResponse(CustomError.EXCEPTION).setMessage(message);
-//    }
-//
-//}
+package com.engine.scm.config;
+
+import com.engine.scm.exception.BizException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 全局异常处理器
+ */
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(value = BizException.class)
+    public ResponseEntity<Map<String, Object>> bizExceptionHandler(HttpServletRequest request, BizException exception) {
+        log.error("业务异常: {}", exception.getMessage(), exception);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", exception.getCode());
+        response.put("message", exception.getMessage());
+        response.put("path", request.getRequestURI());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if ("NOT_FOUND".equals(exception.getCode())) {
+            status = HttpStatus.NOT_FOUND;
+        } else if ("CONFLICT".equals(exception.getCode())) {
+            status = HttpStatus.CONFLICT;
+        } else if ("FORBIDDEN".equals(exception.getCode())) {
+            status = HttpStatus.FORBIDDEN;
+        }
+
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(value = Exception.class)
+    public ResponseEntity<Map<String, Object>> errorHandler(HttpServletRequest request, Exception exception) {
+        log.error("系统异常: {}", exception.getMessage(), exception);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", "INTERNAL_ERROR");
+        response.put("message", "Internal server error: " + exception.getMessage());
+        response.put("path", request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+}

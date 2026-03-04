@@ -22,7 +22,7 @@ public class TemplateSnapshot {
     String templateId;     // draftId
     String version;        // v1 / 2024.01.19 / semver
 
-    JsonNode templateContent;
+    String templateContent;
     Map<String, Object> defaultParams;
 
     String runtimeParamDefRef;

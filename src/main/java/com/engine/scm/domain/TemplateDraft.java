@@ -42,7 +42,7 @@ public class TemplateDraft {
     private String currentVersion;
 
     /** Freemarker 原始模板（JSON 结构） */
-    private JsonNode templateContent;
+    private String templateContent;
 
     /** 默认参数（用于 ParamMerge） */
     private Map<String, Object> defaultParams;
