@@ -4,16 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>模板草稿管理 - Engine SCM</title>
-    
-    <!-- AdminLTE CSS (CDN) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
+
+    <!-- AdminLTE CSS (本地) -->
+    <link rel="stylesheet" href="/adminlte/css/adminlte.min.css">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/adminlte/plugins/fontawesome-free/css/all.min.css">
     <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-bs4@1.13.5/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/datatables/css/dataTables.bootstrap4.min.css">
     <!-- SweetAlert2 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css">
-    
+    <link rel="stylesheet" href="/sweetalert2/dist/sweetalert2.min.css">
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="/adminlte/plugins/codemirror/codemirror.css">
+    <link rel="stylesheet" href="/adminlte/plugins/codemirror/theme/material-darker.css">
+
     <style>
         .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; }
         .status-DRAFT { background: #17a2b8; color: white; }
@@ -22,66 +25,17 @@
         .json-editor { font-family: 'Courier New', monospace; font-size: 12px; min-height: 120px; }
         .table-actions { white-space: nowrap; }
         .table-actions .btn { margin: 0 2px; }
+        .CodeMirror { border: 1px solid #ddd; height: 200px; }
+        .json-valid { border-color: #28a745 !important; }
+        .json-invalid { border-color: #dc3545 !important; }
+        .info-item { margin-bottom: 10px; }
+        .info-item label { display: block; font-weight: 600; color: #6c757d; font-size: 12px; margin-bottom: 4px; }
+        .info-item .info-value { display: block; color: #212529; font-size: 14px; }
     </style>
 </head>
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition">
 <div class="wrapper">
-
-    <!-- Navbar -->
-    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
-            </li>
-            <li class="nav-item d-none d-sm-inline-block">
-                <a href="/" class="nav-link">首页</a>
-            </li>
-            <li class="nav-item d-none d-sm-inline-block">
-                <a href="/templates/drafts" class="nav-link active">模板草稿管理</a>
-            </li>
-        </ul>
-    </nav>
-
-    <!-- Main Sidebar -->
-    <aside class="main-sidebar sidebar-dark-primary elevation-4">
-        <a href="/" class="brand-link">
-            <i class="fas fa-cog brand-image elevation-3" style="opacity: .8"></i>
-            <span class="brand-text font-weight-light">Engine SCM</span>
-        </a>
-        <div class="sidebar">
-            <nav class="mt-2">
-                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-                    <li class="nav-item">
-                        <a href="/templates/drafts" class="nav-link active">
-                            <i class="nav-icon fas fa-file-alt"></i>
-                            <p>模板草稿管理</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/templates/snapshots" class="nav-link">
-                            <i class="nav-icon fas fa-camera"></i>
-                            <p>模板快照</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/templates/publish" class="nav-link">
-                            <i class="nav-icon fas fa-upload"></i>
-                            <p>模板发布</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/templates/dry-run" class="nav-link">
-                            <i class="nav-icon fas fa-vial"></i>
-                            <p>预发布校验</p>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    </aside>
-
-    <!-- Content Wrapper -->
-    <div class="content-wrapper">
+    <div class="content-wrapper" style="margin-left: 0;">
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -152,6 +106,7 @@
                                     <th>环节</th>
                                     <th>模板名称</th>
                                     <th>版本</th>
+                                    <th>快照版本</th>
                                     <th>状态</th>
                                     <th>创建时间</th>
                                     <th>更新时间</th>
@@ -229,26 +184,62 @@
                                 <input type="text" class="form-control" id="currentVersion" placeholder="如: v1.0">
                             </div>
                         </div>
-                        <div class="col-md-6">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
                             <div class="form-group">
-                                <label>运行时参数定义引用</label>
-                                <input type="text" class="form-control" id="runtimeParamDefRef">
+                                <label>运行时参数定义</label>
+                                <!-- 可视化参数编辑器 -->
+                                <div id="paramsVisualEditor">
+                                    <table class="table table-bordered table-sm" id="paramsTable" style="font-size: 12px;">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width: 120px;">名称</th>
+                                                <th style="width: 80px;">类型</th>
+                                                <th style="width: 60px;">必填</th>
+                                                <th style="width: 100px;">默认值</th>
+                                                <th style="width: 60px;">可覆盖</th>
+                                                <th style="width: 70px;">风险等级</th>
+                                                <th>描述</th>
+                                                <th style="width: 80px;">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="paramsTableBody">
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="addParam()">
+                                        <i class="fas fa-plus"></i> 添加参数
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm ml-2" onclick="toggleParamsJsonView()">
+                                        <i class="fas fa-code"></i> JSON 视图
+                                    </button>
+                                </div>
+                                <!-- JSON 编辑器（默认隐藏） -->
+                                <div id="paramsJsonEditor" style="display: none;">
+                                    <textarea class="form-control json-editor" id="params" rows="4" placeholder='[{"name": "param1", "type": "STRING", "required": true}]' style="display: none;"></textarea>
+                                    <div id="paramsEditor"></div>
+                                    <div class="mt-1">
+                                        <button type="button" class="btn btn-info btn-sm" onclick="formatJson('params')">
+                                            <i class="fas fa-align-left"></i> 格式化
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm ml-2" onclick="toggleParamsJsonView()">
+                                            <i class="fas fa-list"></i> 可视化视图
+                                        </button>
+                                        <span id="paramsValid" class="ml-2"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="form-group">
-                                <label>模板内容 (JSON)</label>
-                                <textarea class="form-control json-editor" id="templateContent" rows="8" placeholder='{"key": "value"}'></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label>默认参数 (JSON)</label>
-                                <textarea class="form-control json-editor" id="defaultParams" rows="4" placeholder='{"param1": "value1"}'></textarea>
+                                <label>模板内容 (FreeMarker)</label>
+                                <textarea class="form-control json-editor" id="templateContent" rows="8" placeholder='{"key": "value"}' style="display: none;"></textarea>
+                                <div id="templateContentEditor"></div>
+                                <div class="mt-1">
+                                    <span id="templateContentValid"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -271,45 +262,84 @@
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- 基本信息 -->
                 <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-bordered">
-                            <tr><th>ID</th><td id="viewId"></td></tr>
-                            <tr><th>业务维度</th><td id="viewBizCode"></td></tr>
-                            <tr><th>引擎维度</th><td id="viewEngineCode"></td></tr>
-                            <tr><th>环节</th><td id="viewLinkCode"></td></tr>
-                            <tr><th>模板名称</th><td id="viewName"></td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <table class="table table-bordered">
-                            <tr><th>版本</th><td id="viewVersion"></td></tr>
-                            <tr><th>状态</th><td id="viewStatus"></td></tr>
-                            <tr><th>创建时间</th><td id="viewCreatedAt"></td></tr>
-                            <tr><th>更新时间</th><td id="viewUpdatedAt"></td></tr>
-                        </table>
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3">基本信息</h5>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>业务维度</label>
+                            <span id="viewBizCode" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>引擎维度</label>
+                            <span id="viewEngineCode" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>环节</label>
+                            <span id="viewLinkCode" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>模板名称</label>
+                            <span id="viewName" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>版本</label>
+                            <span id="viewVersion" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>状态</label>
+                            <span id="viewStatus" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>创建时间</label>
+                            <span id="viewCreatedAt" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>更新时间</label>
+                            <span id="viewUpdatedAt" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <div class="info-item">
+                            <label>描述</label>
+                            <span id="viewDescription" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 运行时参数定义 -->
                 <div class="row mt-3">
                     <div class="col-md-12">
-                        <div class="form-group">
-                            <label>描述</label>
-                            <p id="viewDescription" class="form-control-static"></p>
-                        </div>
+                        <h5 class="border-bottom pb-2 mb-3">运行时参数定义</h5>
+                        <pre id="viewParams" class="bg-light p-3" style="max-height: 200px; overflow: auto; font-size: 12px;"></pre>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>模板内容</label>
-                            <pre id="viewTemplateContent" class="bg-light p-3" style="max-height: 300px; overflow: auto; font-size: 12px;"></pre>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>默认参数</label>
-                            <pre id="viewDefaultParams" class="bg-light p-3" style="max-height: 300px; overflow: auto; font-size: 12px;"></pre>
-                        </div>
+                <!-- 模板内容 -->
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3">模板内容 (FreeMarker)</h5>
+                        <pre id="viewTemplateContent" class="bg-light p-3" style="max-height: 400px; overflow: auto; font-size: 12px;"></pre>
                     </div>
                 </div>
             </div>
@@ -321,28 +351,287 @@
 </div>
 
 <!-- jQuery -->
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+<script src="/adminlte/plugins/jquery/jquery.min.js"></script>
 <!-- Bootstrap 4 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE App -->
-<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+<script src="/adminlte/js/adminlte.min.js"></script>
 <!-- DataTables -->
-<script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.5/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/datatables.net-bs4@1.13.5/js/dataTables.bootstrap4.min.js"></script>
+<script src="/datatables/js/jquery.dataTables.min.js"></script>
+<script src="/adminlte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
 <!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.js"></script>
+<script src="/sweetalert2/dist/sweetalert2.min.js"></script>
+<!-- CodeMirror -->
+<script src="/adminlte/plugins/codemirror/codemirror.js"></script>
+<script src="/adminlte/plugins/codemirror/mode/javascript/javascript.js"></script>
 
 <script>
 let table;
+let snapshotCounts = {};
+let templateContentEditor;
+let paramsEditor;
+let paramsJsonViewMode = false;  // 是否处于 JSON 编辑模式
+let currentParams = [];  // 当前参数列表
 
 $(function() {
+    initCodeMirror();
     initDataTable();
+    loadSnapshotCounts();
 });
+
+function initCodeMirror() {
+    // 模板内容编辑器
+    templateContentEditor = CodeMirror(document.getElementById("templateContentEditor"), {
+        mode: "text/html",
+        theme: "material-darker",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        extraKeys: {"Ctrl-Space": "autocomplete"}
+    });
+
+    // 运行时参数定义编辑器
+    paramsEditor = CodeMirror(document.getElementById("paramsEditor"), {
+        mode: "application/json",
+        theme: "material-darker",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        autoCloseBrackets: true,
+        matchBrackets: true
+    });
+
+    // 监听内容变化
+    templateContentEditor.on("change", function() {
+        validateJsonSilent('templateContent');
+    });
+
+    paramsEditor.on("change", function() {
+        validateJsonSilent('params');
+    });
+}
+
+function formatJson(fieldId) {
+    // 模板内容是 FreeMarker，不需要 JSON 格式化
+    if (fieldId === 'templateContent') {
+        Swal.fire('提示', '模板内容为 FreeMarker 格式，无需格式化', 'info');
+        return;
+    }
+
+    const editor = paramsEditor;
+    const content = editor.getValue();
+    if (!content.trim()) return;
+
+    try {
+        const parsed = JSON.parse(content);
+        editor.setValue(JSON.stringify(parsed, null, 2));
+        $('#' + fieldId + 'Valid').html('<span class="text-success"><i class="fas fa-check"></i> 有效 JSON</span>');
+    } catch(e) {
+        Swal.fire('格式化失败', 'JSON 格式不正确: ' + e.message, 'error');
+    }
+}
+
+function validateJson(fieldId) {
+    // 模板内容是 FreeMarker，不需要 JSON 校验
+    if (fieldId === 'templateContent') {
+        $('#' + fieldId + 'Valid').html('<span class="text-info"><i class="fas fa-info-circle"></i> FreeMarker 模板</span>');
+        return;
+    }
+
+    validateJsonSilent(fieldId);
+    const isValid = $('#' + fieldId + 'Valid').hasClass('text-success');
+    if (!isValid) {
+        const content = fieldId === 'templateContent' ? templateContentEditor.getValue() : paramsEditor.getValue();
+        try {
+            JSON.parse(content);
+        } catch(e) {
+            Swal.fire('JSON 校验失败', e.message, 'error');
+        }
+    }
+}
+
+// ==================== 可视化参数编辑器 ====================
+
+// 切换 JSON/可视化视图
+function toggleParamsJsonView() {
+    paramsJsonViewMode = !paramsJsonViewMode;
+
+    if (paramsJsonViewMode) {
+        // 切换到 JSON 视图 - 将可视化数据转为 JSON
+        paramsEditor.setValue(JSON.stringify(currentParams, null, 2));
+        $('#paramsVisualEditor').hide();
+        $('#paramsJsonEditor').show();
+    } else {
+        // 切换到可视化视图 - 将 JSON 数据转为可视化
+        try {
+            const jsonStr = paramsEditor.getValue();
+            if (jsonStr.trim()) {
+                currentParams = JSON.parse(jsonStr);
+            }
+        } catch(e) {
+            // 解析失败，保留原数据
+        }
+        renderParamsTable();
+        $('#paramsVisualEditor').show();
+        $('#paramsJsonEditor').hide();
+    }
+}
+
+// 渲染参数表格
+function renderParamsTable() {
+    const tbody = $('#paramsTableBody');
+    tbody.empty();
+
+    currentParams.forEach((param, index) => {
+        const row = `
+            <tr>
+                <td><input type="text" class="form-control form-control-sm" value="${param.name || ''}" placeholder="参数名" onchange="updateParam(${index}, 'name', this.value)"></td>
+                <td>
+                    <select class="form-control form-control-sm" onchange="updateParam(${index}, 'type', this.value)">
+                        <option value="STRING" ${param.type === 'STRING' ? 'selected' : ''}>STRING</option>
+                        <option value="INT" ${param.type === 'INT' ? 'selected' : ''}>INT</option>
+                        <option value="DOUBLE" ${param.type === 'DOUBLE' ? 'selected' : ''}>DOUBLE</option>
+                        <option value="BOOLEAN" ${param.type === 'BOOLEAN' ? 'selected' : ''}>BOOLEAN</option>
+                        <option value="OBJECT" ${param.type === 'OBJECT' ? 'selected' : ''}>OBJECT</option>
+                        <option value="ARRAY" ${param.type === 'ARRAY' ? 'selected' : ''}>ARRAY</option>
+                        <option value="STRING_LIST" ${param.type === 'STRING_LIST' ? 'selected' : ''}>STRING_LIST</option>
+                    </select>
+                </td>
+                <td><input type="checkbox" ${param.required ? 'checked' : ''} onchange="updateParam(${index}, 'required', this.checked)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${param.defaultValue || ''}" placeholder="默认值" onchange="updateParam(${index}, 'defaultValue', this.value)"></td>
+                <td><input type="checkbox" ${param.overridable !== false ? 'checked' : ''} onchange="updateParam(${index}, 'overridable', this.checked)"></td>
+                <td>
+                    <select class="form-control form-control-sm" onchange="updateParam(${index}, 'riskLevel', this.value)">
+                        <option value="">无</option>
+                        <option value="LOW" ${param.riskLevel === 'LOW' ? 'selected' : ''}>LOW</option>
+                        <option value="MEDIUM" ${param.riskLevel === 'MEDIUM' ? 'selected' : ''}>MEDIUM</option>
+                        <option value="HIGH" ${param.riskLevel === 'HIGH' ? 'selected' : ''}>HIGH</option>
+                    </select>
+                </td>
+                <td><input type="text" class="form-control form-control-sm" value="${param.description || ''}" placeholder="参数描述" onchange="updateParam(${index}, 'description', this.value)"></td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteParam(${index})" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+// 添加参数
+function addParam() {
+    currentParams.push({
+        name: '',
+        type: 'STRING',
+        required: false,
+        defaultValue: null,
+        overridable: true,
+        riskLevel: null,
+        description: ''
+    });
+    renderParamsTable();
+}
+
+// 更新参数
+function updateParam(index, field, value) {
+    if (field === 'defaultValue') {
+        // 尝试转换默认值类型
+        if (value === 'true') {
+            currentParams[index][field] = true;
+        } else if (value === 'false') {
+            currentParams[index][field] = false;
+        } else if (!isNaN(value) && value !== '') {
+            currentParams[index][field] = Number(value);
+        } else if (value === '') {
+            currentParams[index][field] = null;
+        } else {
+            currentParams[index][field] = value;
+        }
+    } else {
+        currentParams[index][field] = value;
+    }
+}
+
+// 删除参数
+function deleteParam(index) {
+    currentParams.splice(index, 1);
+    renderParamsTable();
+}
+
+// 从 JSON 加载参数（用于编辑时）
+function loadParamsFromJson(jsonStr) {
+    try {
+        if (jsonStr && jsonStr.trim()) {
+            currentParams = JSON.parse(jsonStr);
+        } else {
+            currentParams = [];
+        }
+    } catch(e) {
+        currentParams = [];
+    }
+    renderParamsTable();
+}
+
+function validateJsonSilent(fieldId) {
+    const editor = fieldId === 'templateContent' ? templateContentEditor : paramsEditor;
+    const content = editor.getValue();
+    const validSpan = $('#' + fieldId + 'Valid');
+
+    // 模板内容是 FreeMarker，不进行 JSON 校验
+    if (fieldId === 'templateContent') {
+        if (!content.trim()) {
+            validSpan.html('');
+        } else {
+            validSpan.html('<span class="text-info"><i class="fas fa-info-circle"></i> FreeMarker</span>');
+        }
+        return true;
+    }
+
+    // 运行时参数定义进行 JSON 校验
+    if (!content.trim()) {
+        validSpan.html('');
+        return true;
+    }
+
+    try {
+        JSON.parse(content);
+        validSpan.html('<span class="text-success"><i class="fas fa-check"></i> 有效</span>');
+        return true;
+    } catch(e) {
+        validSpan.html('<span class="text-danger"><i class="fas fa-times"></i> 无效: ' + e.message + '</span>');
+        return false;
+    }
+}
+
+function loadSnapshotCounts() {
+    fetch('/api/templates/drafts')
+        .then(response => response.json())
+        .then(drafts => {
+            drafts.forEach(draft => {
+                fetch('/api/templates/snapshots?templateId=' + draft.id)
+                    .then(response => response.json())
+                    .then(snapshots => {
+                        snapshotCounts[draft.id] = snapshots.length;
+                        // 刷新表格以更新快照数量显示
+                        if (table) {
+                            table.rows().invalidate().draw();
+                        }
+                    })
+                    .catch(() => {
+                        snapshotCounts[draft.id] = 0;
+                    });
+            });
+        });
+}
 
 function initDataTable() {
     table = $('#draftTable').DataTable({
         language: {
-            url: 'https://cdn.jsdelivr.net/npm/datatables.net-plugins/i18n/zh-CN.json'
+            url: '/datatables/plugins/i18n/zh-CN.json'
         },
         processing: true,
         serverSide: false,
@@ -357,7 +646,15 @@ function initDataTable() {
             { data: 'linkCode' },
             { data: 'name' },
             { data: 'currentVersion' },
-            { 
+            {
+                data: 'id',
+                render: function(data, type, row) {
+                    // 显示快照数量（需要在页面加载时预先获取）
+                    const count = snapshotCounts[data] || 0;
+                    return count > 0 ? '<span class="badge badge-info">' + count + ' 个版本</span>' : '<span class="text-muted">-</span>';
+                }
+            },
+            {
                 data: 'status',
                 render: function(data) {
                     return '<span class="status-badge status-' + data + '">' + getStatusText(data) + '</span>';
@@ -380,9 +677,11 @@ function initDataTable() {
                 render: function(data, type, row) {
                     let buttons = '<div class="table-actions">';
                     buttons += '<button class="btn btn-info btn-sm" onclick="viewDraft(\'' + row.id + '\')" title="查看"><i class="fas fa-eye"></i></button> ';
-                    buttons += '<button class="btn btn-primary btn-sm" onclick="editDraft(\'' + row.id + '\')" title="编辑"><i class="fas fa-edit"></i></button> ';
                     if (row.status === 'DRAFT') {
+                        buttons += '<button class="btn btn-primary btn-sm" onclick="editDraft(\'' + row.id + '\')" title="编辑"><i class="fas fa-edit"></i></button> ';
                         buttons += '<button class="btn btn-warning btn-sm" onclick="lockDraft(\'' + row.id + '\')" title="锁定"><i class="fas fa-lock"></i></button> ';
+                    } else if (row.status === 'LOCKED') {
+                        buttons += '<button class="btn btn-success btn-sm" onclick="unlockDraft(\'' + row.id + '\')" title="解锁"><i class="fas fa-lock-open"></i></button> ';
                     }
                     buttons += '<button class="btn btn-danger btn-sm" onclick="deleteDraft(\'' + row.id + '\')" title="删除"><i class="fas fa-trash"></i></button>';
                     buttons += '</div>';
@@ -418,28 +717,43 @@ function showCreateModal() {
     $('#modalTitle').text('新建草稿');
     $('#draftForm')[0].reset();
     $('#draftId').val('');
+    // 清空 CodeMirror 编辑器，模板内容使用 FreeMarker 示例
+    templateContentEditor.setValue('<html>\n  <body>\n    <h1>${title}</h1>\n    <#if items?has_content>\n      <ul>\n        <#list items as item>\n          <li>${item.name}</li>\n        </#list>\n      </ul>\n    <#else>\n      <p>暂无数据</p>\n    </#if>\n  </body>\n</html>');
+
+    // 初始化参数编辑器
+    paramsJsonViewMode = false;
+    currentParams = [];
+    $('#paramsVisualEditor').show();
+    $('#paramsJsonEditor').hide();
+    renderParamsTable();
+
+    $('#templateContentValid').html('<span class="text-info"><i class="fas fa-info-circle"></i> FreeMarker</span>');
+    $('#paramsValid').html('');
     $('#draftModal').modal('show');
 }
 
 function saveDraft() {
     const id = $('#draftId').val();
-    let templateContent = {};
-    let defaultParams = {};
-    
-    try {
-        templateContent = JSON.parse($('#templateContent').val() || '{}');
-    } catch(e) {
-        Swal.fire('错误', '模板内容 JSON 格式不正确', 'error');
-        return;
+
+    // 模板内容直接作为字符串（FreeMarker模板）
+    const templateContentStr = templateContentEditor.getValue() || '';
+
+    // 获取参数（从可视化编辑器或 JSON 编辑器）
+    let params;
+    if (paramsJsonViewMode) {
+        // 从 JSON 编辑器获取
+        const paramsStr = paramsEditor.getValue() || '[]';
+        try {
+            params = JSON.parse(paramsStr);
+        } catch(e) {
+            Swal.fire('错误', '运行时参数定义 JSON 格式不正确: ' + e.message, 'error');
+            return;
+        }
+    } else {
+        // 从可视化编辑器获取
+        params = currentParams;
     }
-    
-    try {
-        defaultParams = JSON.parse($('#defaultParams').val() || '{}');
-    } catch(e) {
-        Swal.fire('错误', '默认参数 JSON 格式不正确', 'error');
-        return;
-    }
-    
+
     const data = {
         bizCode: $('#bizCode').val(),
         engineCode: $('#engineCode').val(),
@@ -447,9 +761,8 @@ function saveDraft() {
         name: $('#name').val(),
         description: $('#description').val(),
         currentVersion: $('#currentVersion').val(),
-        runtimeParamDefRef: $('#runtimeParamDefRef').val(),
-        templateContent: templateContent,
-        defaultParams: defaultParams,
+        templateContent: templateContentStr,
+        params: params,
         status: 'DRAFT'
     };
     
@@ -487,12 +800,12 @@ function viewDraft(id) {
             $('#viewLinkCode').text(data.linkCode);
             $('#viewName').text(data.name);
             $('#viewVersion').text(data.currentVersion || '-');
+            $('#viewParams').text(data.params ? JSON.stringify(data.params, null, 2) : '-');
             $('#viewStatus').html('<span class="status-badge status-' + data.status + '">' + getStatusText(data.status) + '</span>');
             $('#viewCreatedAt').text(data.createdAt ? new Date(data.createdAt).toLocaleString('zh-CN') : '-');
             $('#viewUpdatedAt').text(data.updatedAt ? new Date(data.updatedAt).toLocaleString('zh-CN') : '-');
             $('#viewDescription').text(data.description || '-');
-            $('#viewTemplateContent').text(data.templateContent ? JSON.stringify(data.templateContent, null, 2) : '-');
-            $('#viewDefaultParams').text(data.defaultParams ? JSON.stringify(data.defaultParams, null, 2) : '-');
+            $('#viewTemplateContent').text(data.templateContent || '-');
             $('#viewModal').modal('show');
         });
 }
@@ -509,9 +822,17 @@ function editDraft(id) {
             $('#name').val(data.name);
             $('#description').val(data.description);
             $('#currentVersion').val(data.currentVersion);
-            $('#runtimeParamDefRef').val(data.runtimeParamDefRef);
-            $('#templateContent').val(data.templateContent ? JSON.stringify(data.templateContent, null, 2) : '{}');
-            $('#defaultParams').val(data.defaultParams ? JSON.stringify(data.defaultParams, null, 2) : '{}');
+            // 使用 CodeMirror 编辑器加载数据
+            templateContentEditor.setValue(data.templateContent ? JSON.stringify(data.templateContent, null, 2) : '{}');
+
+            // 初始化参数编辑器
+            paramsJsonViewMode = false;
+            loadParamsFromJson(data.params ? JSON.stringify(data.params, null, 2) : '[]');
+            $('#paramsVisualEditor').show();
+            $('#paramsJsonEditor').hide();
+
+            // 校验显示
+            validateJsonSilent('templateContent');
             $('#draftModal').modal('show');
         });
 }
@@ -519,7 +840,7 @@ function editDraft(id) {
 function lockDraft(id) {
     Swal.fire({
         title: '确认锁定',
-        text: '确定要锁定这个草稿吗？',
+        text: '确定要锁定这个草稿吗？锁定后不可编辑，但可以发布。',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: '确认',
@@ -531,6 +852,26 @@ function lockDraft(id) {
                 .then(data => {
                     table.ajax.reload();
                     Swal.fire('成功', '锁定成功', 'success');
+                });
+        }
+    });
+}
+
+function unlockDraft(id) {
+    Swal.fire({
+        title: '确认解锁',
+        text: '确定要解锁这个草稿吗？解锁后可再次编辑。',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '确认',
+        cancelButtonText: '取消'
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/api/templates/drafts/' + id + '/unlock', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    table.ajax.reload();
+                    Swal.fire('成功', '解锁成功', 'success');
                 });
         }
     });

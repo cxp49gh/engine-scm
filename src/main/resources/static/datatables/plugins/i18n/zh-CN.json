@@ -1,0 +1,190 @@
+{
+    "aria": {
+        "sortAscending": ": 激活以列升序排列",
+        "sortDescending": ": 激活以降序排列"
+    },
+    "autoFill": {
+        "cancel": "取消",
+        "fill": "填充所有单元格",
+        "fillHorizontal": "水平填充单元格",
+        "fillVertical": "垂直填充单元格",
+        "info": "自动填充信息"
+    },
+    "className": "action",
+    "columns": [
+        {
+            "className": "control",
+            "title": ""
+        }
+    ],
+    "defaultContent": "<span class=\"sr-only\">Toggle</span>",
+    "info": {
+        "details": "详情",
+        "title": "显示 _TOTAL_ 条记录中的 _START_ 到 _END_ 条"
+    },
+    "lengthMenu": "显示 _MENU_ 条记录",
+    "loadingRecords": "加载中...",
+    "paginate": {
+        "first": "首页",
+        "last": "末页",
+        "next": "下一页",
+        "previous": "上一页"
+    },
+    "processing": "处理中...",
+    "search": "搜索:",
+    "searchBuilder": {
+        "add": "添加条件",
+        "button": {
+            "0": "搜索生成器",
+            "_": "搜索生成器 (%d)"
+        },
+        "clearAll": "清除全部",
+        "condition": "条件",
+        "data": "数据",
+        "delete": "删除",
+        "deleteTitle": "删除规则",
+        "leftTitle": "已删除条件",
+        "logicAnd": "与",
+        "logicOr": "或",
+        "rightTitle": "条件区域",
+        "title": {
+            "0": "搜索生成器",
+            "_": "搜索生成器 (%d)"
+        },
+        "value": "值",
+        "conditions": {
+            "date": {
+                "after": "之后",
+                "before": "之前",
+                "between": "介于",
+                "empty": "为空",
+                "equals": "等于",
+                "not": "不等于",
+                "notBetween": "不介于",
+                "notEmpty": "不为空"
+            },
+            "number": {
+                "between": "介于",
+                "empty": "为空",
+                "equals": "等于",
+                "gt": "大于",
+                "gte": "大于或等于",
+                "lt": "小于",
+                "lte": "小于或等于",
+                "not": "不等于",
+                "notBetween": "不介于",
+                "notEmpty": "不为空"
+            },
+            "string": {
+                "contains": "包含",
+                "empty": "为空",
+                "endsWith": "以...结束",
+                "equals": "等于",
+                "not": "不等于",
+                "notEmpty": "不为空",
+                "startsWith": "以...开始"
+            },
+            "array": {
+                "contains": "包含",
+                "empty": "为空",
+                "equals": "等于",
+                "not": "不等于",
+                "notEmpty": "不为空"
+            }
+        }
+    },
+    "searchPanes": {
+        "clearMessage": "清除全部",
+        "collapse": {
+            "0": "搜索面板",
+            "_": "搜索面板 (%d)"
+        },
+        "count": "{total}",
+        "countFiltered": "{shown} ({total})",
+        "emptyPanes": "没有搜索面板",
+        "loadMessage": "加载搜索面板...",
+        "title": "活动过滤器 - %d",
+        "showMessage": "显示全部",
+        "collapseMessage": "折叠全部"
+    },
+    "select": {
+        "cells": {
+            "1": "选择 1 个单元格",
+            "_": "选择 %d 个单元格"
+        },
+        "columns": {
+            "1": "选择 1 列",
+            "_": "选择 %d 列"
+        },
+        "rows": {
+            "1": "选择 1 行",
+            "_": "选择 %d 行"
+        }
+    },
+    "zeroRecords": "没有找到匹配记录",
+    "datetime": {
+        "previous": "上一个",
+        "next": "下一个",
+        "months": ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"],
+        "monthsShort": ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"],
+        "weekdays": ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+        "weekdaysShort": ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
+        "weekdaysMin": ["日", "一", "二", "三", "四", "五", "六"]
+    },
+    "editor": {
+        "close": "关闭",
+        "create": {
+            "button": "新增",
+            "submit": "新增",
+            "title": "新增记录"
+        },
+        "edit": {
+            "button": "编辑",
+            "submit": "编辑",
+            "title": "编辑记录"
+        },
+        "remove": {
+            "button": "删除",
+            "submit": "删除",
+            "title": "删除记录",
+            "confirm": {
+                "1": "确定要删除 1 条记录吗?",
+                "_": "确定要删除 %d 条记录吗?"
+            }
+        },
+        "error": {
+            "system": "系统发生错误，请联系系统管理员。"
+        },
+        "multi": {
+            "title": "多个值",
+            "info": "所选记录包含多个不同的值。要编辑并设置所有记录为这些值，请单击此处，否则每个记录将保留其自身的值。",
+            "restore": "撤销更改",
+            "noMulti": "此编辑项可属于一组，但单独编辑时每个值不会被更改。"
+        }
+    },
+    "stateRestore": {
+        "creationModal": {
+            "button": "创建",
+            "columns": {
+                "search": "列搜索",
+                "visible": "列可见性"
+            },
+            "name": "名称:",
+            "order": "排序:",
+            "paging": "分页:",
+            "scroller": "滚动位置:",
+            "search": "搜索:",
+            "select": "选择:",
+            "title": "创建新状态",
+            "toggleLabel": "包含:"
+        },
+        "duplicateError": "已存在带此名称的状态",
+        "emptyError": "名称不能为空",
+        "removeConfirm": "确定要删除 %d 吗?",
+        "removeError": "删除状态失败",
+        "removeSubmit": "删除",
+        "renameButton": "重命名",
+        "renameError": "重命名状态失败",
+        "renameLabel": "新名称:"
+    }
+}

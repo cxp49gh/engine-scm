@@ -1,28 +1,26 @@
 package com.engine.scm.service;
 
-import com.engine.scm.domain.RuntimeParamDefinition;
 import com.engine.scm.domain.TemplateSnapshot;
 import com.engine.scm.dto.DryRunRequest;
 import com.engine.scm.dto.DryRunResult;
 import com.engine.scm.dto.ParamMergeResult;
+import com.engine.scm.dto.ParamMeta;
 import com.engine.scm.dto.RiskSummary;
 import com.engine.scm.exception.BizException;
 import com.engine.scm.repository.TemplateSnapshotRepository;
 import com.engine.scm.util.FreemarkerHelper;
-import com.engine.scm.util.JsonSchemaValidator;
 import com.engine.scm.util.ParamValidator;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class DryRunServiceImpl implements DryRunService {
 
     @Autowired
     private TemplateSnapshotRepository snapshotRepository;
-
-    @Autowired
-    private RuntimeParamDefService paramDefService;
 
     @Autowired
     private ParamMergeService paramMergeService;
@@ -33,11 +31,8 @@ public class DryRunServiceImpl implements DryRunService {
     @Autowired
     private FreemarkerHelper freemarkerHelper;
 
-    @Autowired
-    private JsonSchemaValidator schemaValidator;
-
     @Override
-    public DryRunResult dryRun(DryRunRequest request) {
+    public DryRunResult dryRun(DryRunRequest request) throws JsonProcessingException {
 
         try {
             // 1️⃣ 加载模板快照
@@ -46,37 +41,32 @@ public class DryRunServiceImpl implements DryRunService {
                             .orElseThrow(() ->
                                     BizException.invalid("Template snapshot not found"));
 
-            // 2️⃣ 加载参数定义
-            RuntimeParamDefinition paramDef =
-                    paramDefService.get(snapshot.getRuntimeParamDefRef());
+            // 2️⃣ 从快照获取参数定义
+            List<ParamMeta> params = snapshot.getParams();
 
-            // 3️⃣ 参数合并 + Diff
+            // 3️⃣ 参数合并 + Diff (从 params 提取默认值)
             ParamMergeResult mergeResult =
                     paramMergeService.merge(
-                            paramDef,
-                            snapshot.getDefaultParams(),
+                            params,
                             request.getRuntimeParams()
                     );
 
             // 4️⃣ 参数规则校验
             paramValidator.validate(
-                    mergeResult.getParams(), paramDef);
+                    mergeResult.getParams(), params);
 
             // 5️⃣ Freemarker 渲染
-            JsonNode renderedJson =
-                    freemarkerHelper.renderJson(
+            String renderedContent =
+                    freemarkerHelper.render(
                             snapshot.getTemplateContent(),
                             mergeResult.getParams()
                     );
 
-            // 6️⃣ JSON Schema 校验
-            schemaValidator.validate(renderedJson);
-
-            // 7️⃣ 风险汇总
+            // 6️⃣ 风险汇总
             RiskSummary riskSummary =
                     RiskSummary.fromDiffs(mergeResult.getDiffs());
 
-            // 8️⃣ 严格模式处理
+            // 7️⃣ 严格模式处理
             if (request.isStrict() && riskSummary.hasHighRisk()) {
                 throw BizException.invalid(
                         "High risk params detected in strict mode");
@@ -84,7 +74,7 @@ public class DryRunServiceImpl implements DryRunService {
 
             return DryRunResult.builder()
                     .mergedParams(mergeResult.getParams())
-                    .renderedJson(renderedJson)
+                    .renderedContent(renderedContent)
                     .paramDiffs(mergeResult.getDiffs())
                     .riskSummary(riskSummary)
                     .passed(true)

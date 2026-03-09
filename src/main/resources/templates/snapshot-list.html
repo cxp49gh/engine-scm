@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>模板快照 - Engine SCM</title>
+
+    <link rel="stylesheet" href="/adminlte/css/adminlte.min.css">
+    <link rel="stylesheet" href="/adminlte/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/datatables/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/sweetalert2/dist/sweetalert2.min.css">
+
+    <style>
+        .risk-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+        .risk-LOW { background: #28a745; color: white; }
+        .risk-MEDIUM { background: #ffc107; color: black; }
+        .risk-HIGH { background: #dc3545; color: white; }
+        .risk-NONE { background: #6c757d; color: white; }
+        .info-item { margin-bottom: 10px; }
+        .info-item label { display: block; font-weight: 600; color: #6c757d; font-size: 12px; margin-bottom: 4px; }
+        .info-item .info-value { display: block; color: #212529; font-size: 14px; }
+    </style>
+</head>
+<body class="hold-transition">
+<div class="wrapper">
+    <div class="content-wrapper" style="margin-left: 0;">
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>模板快照</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/">首页</a></li>
+                            <li class="breadcrumb-item active">模板快照</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-search"></i> 查询条件</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="searchForm" class="form-inline">
+                            <div class="form-group mx-2">
+                                <label>选择模板: </label>
+                                <select class="form-control ml-2" id="searchTemplateId" onchange="searchSnapshots()">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-secondary mx-2" onclick="resetSearch()">
+                                <i class="fas fa-redo"></i> 重置
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-list"></i> 快照列表</h3>
+                    </div>
+                    <div class="card-body">
+                        <table id="snapshotTable" class="table table-bordered table-striped" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>模板ID</th>
+                                    <th>模板名称</th>
+                                    <th>版本</th>
+                                    <th>风险等级</th>
+                                    <th>发布时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.x
+        </div>
+        <strong>Copyright &copy; 2026 Engine SCM</strong>
+    </footer>
+</div>
+
+<div class="modal fade" id="viewModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title"><i class="fas fa-eye"></i> 快照详情</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 基本信息 -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle"></i> 基本信息</h5>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>快照ID</label>
+                            <span id="viewId" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>模板ID</label>
+                            <span id="viewTemplateId" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>版本</label>
+                            <span id="viewVersion" class="info-value text-primary font-weight-bold"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>风险等级</label>
+                            <span id="viewRiskLevel" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <div class="info-item">
+                            <label>发布时间</label>
+                            <span id="viewPublishedAt" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 运行时参数定义 -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-cog"></i> 运行时参数定义</h5>
+                        <pre id="viewParams" class="bg-light p-3" style="max-height: 200px; overflow: auto; font-size: 12px;"></pre>
+                    </div>
+                </div>
+                <!-- 模板内容 -->
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-file-code"></i> 模板内容 (FreeMarker)</h5>
+                        <pre id="viewTemplateContent" class="bg-light p-3" style="max-height: 400px; overflow: auto; font-size: 12px;"></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/adminlte/plugins/jquery/jquery.min.js"></script>
+<script src="/adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/adminlte/js/adminlte.min.js"></script>
+<script src="/datatables/js/jquery.dataTables.min.js"></script>
+<script src="/adminlte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/sweetalert2/dist/sweetalert2.min.js"></script>
+
+<script>
+let table;
+
+$(function() {
+    loadTemplates();
+    initDataTable();
+});
+
+function loadTemplates() {
+    fetch('/api/templates/drafts')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('searchTemplateId');
+            data.forEach(function(item) {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name + ' (' + item.bizCode + ')';
+                select.appendChild(option);
+            });
+            // 加载全部模板的快照
+            searchSnapshots();
+        });
+}
+
+function initDataTable() {
+    table = $('#snapshotTable').DataTable({
+        language: {
+            url: '/datatables/plugins/i18n/zh-CN.json'
+        },
+        processing: true,
+        serverSide: false,
+        ordering: false,
+        paging: true,
+        searching: false,
+        columns: [
+            { data: 'id', visible: false },
+            { data: 'templateId', visible: false },
+            { data: 'templateName' },
+            { data: 'version' },
+            {
+                data: 'riskLevel',
+                render: function(data) {
+                    return '<span class="risk-badge risk-' + (data || 'NONE') + '">' + getRiskText(data) + '</span>';
+                }
+            },
+            {
+                data: 'publishedAt',
+                render: function(data) {
+                    return data ? new Date(data).toLocaleString('zh-CN') : '-';
+                }
+            },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    let buttons = '<div class="table-actions">';
+                    buttons += '<button class="btn btn-info btn-sm" onclick="viewSnapshot(\'' + row.id + '\')" title="查看"><i class="fas fa-eye"></i></button> ';
+                    buttons += '<button class="btn btn-success btn-sm" onclick="createDraftFromSnapshot(\'' + row.id + '\')" title="从快照创建草稿"><i class="fas fa-plus"></i></button> ';
+                    buttons += '</div>';
+                    return buttons;
+                }
+            }
+        ]
+    });
+}
+
+function getRiskText(level) {
+    const map = { 'NONE': '无', 'LOW': '低', 'MEDIUM': '中', 'HIGH': '高' };
+    return map[level] || level || '无';
+}
+
+function searchSnapshots() {
+    const templateId = $('#searchTemplateId').val();
+    let url = '/api/templates/snapshots';
+    if (templateId) {
+        url += '?templateId=' + templateId;
+    }
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            // 获取所有草稿信息用于显示模板名称
+            fetch('/api/templates/drafts')
+                .then(res => res.json())
+                .then(drafts => {
+                    const draftMap = {};
+                    drafts.forEach(draft => {
+                        draftMap[draft.id] = draft.name;
+                    });
+
+                    // 为每个快照设置模板名称
+                    data.forEach(snapshot => {
+                        snapshot.templateName = draftMap[snapshot.templateId] || '未知模板';
+                    });
+
+                    table.clear();
+                    if (data.length > 0) {
+                        table.rows.add(data).draw();
+                    } else {
+                        table.draw();
+                    }
+                });
+        })
+        .catch(err => {
+            console.error('获取快照列表失败:', err);
+            alert('加载失败: ' + err.message);
+        });
+}
+
+function resetSearch() {
+    $('#searchTemplateId').val('');
+    searchSnapshots();
+}
+
+function viewSnapshot(id) {
+    // 直接通过 ID 获取快照详情
+    fetch('/api/templates/snapshots/' + id)
+        .then(response => response.json())
+        .then(snapshot => {
+            $('#viewId').text(snapshot.id);
+            $('#viewTemplateId').text(snapshot.templateId);
+            $('#viewVersion').text(snapshot.version);
+            $('#viewRiskLevel').html('<span class="risk-badge risk-' + (snapshot.riskLevel || 'NONE') + '">' + getRiskText(snapshot.riskLevel) + '</span>');
+            $('#viewPublishedAt').text(snapshot.publishedAt ? new Date(snapshot.publishedAt).toLocaleString('zh-CN') : '-');
+            $('#viewParams').text(snapshot.params ? JSON.stringify(snapshot.params, null, 2) : '-');
+            $('#viewTemplateContent').text(snapshot.templateContent || '-');
+            $('#viewModal').modal('show');
+        })
+        .catch(err => {
+            console.error('获取快照详情失败:', err);
+            Swal.fire('错误', '获取快照详情失败: ' + err.message, 'error');
+        });
+}
+
+function createDraftFromSnapshot(snapshotId) {
+    // 获取快照详情
+    const templateId = $('#searchTemplateId').val();
+    if (!templateId) {
+        Swal.fire('提示', '请先选择模板', 'warning');
+        return;
+    }
+
+    fetch('/api/templates/snapshots?templateId=' + templateId)
+        .then(response => response.json())
+        .then(data => {
+            const snapshot = data.find(s => s.id === snapshotId);
+            if (!snapshot) {
+                Swal.fire('错误', '未找到快照', 'error');
+                return;
+            }
+
+            // 先获取关联的草稿信息
+            return fetch('/api/templates/drafts/' + snapshot.templateId)
+                .then(res => res.json())
+                .then(draft => {
+                    // 检查是否已存在相同组合的草稿
+                    return fetch('/api/templates/drafts?bizCode=' + encodeURIComponent(draft.bizCode))
+                        .then(r => r.json())
+                        .then(drafts => {
+                            const existingDraft = drafts.find(d =>
+                                d.bizCode === draft.bizCode &&
+                                d.engineCode === draft.engineCode &&
+                                d.linkCode === draft.linkCode
+                            );
+
+                            if (existingDraft) {
+                                // 询问用户是否覆盖现有草稿
+                                Swal.fire({
+                                    title: '已存在草稿',
+                                    text: '该模板已存在草稿，是否覆盖现有草稿？',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: '覆盖',
+                                    cancelButtonText: '取消'
+                                }).then(result => {
+                                    if (result.isConfirmed) {
+                                        // 更新现有草稿
+                                        updateDraftFromSnapshot(existingDraft.id, snapshot, draft);
+                                    }
+                                });
+                            } else {
+                                // 创建新草稿
+                                createNewDraftFromSnapshot(snapshot, draft);
+                            }
+                        });
+                });
+        });
+}
+
+function createNewDraftFromSnapshot(snapshot, originalDraft) {
+    const newDraft = {
+        bizCode: originalDraft.bizCode,
+        engineCode: originalDraft.engineCode,
+        linkCode: originalDraft.linkCode,
+        name: originalDraft.name + ' (从快照恢复)',
+        description: '从快照 v' + snapshot.version + ' 恢复，创建时间: ' + new Date().toLocaleString('zh-CN'),
+        currentVersion: '',
+        params: snapshot.params,
+        templateContent: snapshot.templateContent,
+        status: 'DRAFT'
+    };
+
+    fetch('/api/templates/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDraft)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        return response.json().then(err => { throw new Error(err.message || '创建失败'); });
+    })
+    .then(data => {
+        Swal.fire('成功', '已从快照创建新草稿', 'success');
+    })
+    .catch(error => {
+        Swal.fire('错误', '创建草稿失败: ' + error.message, 'error');
+    });
+}
+
+function updateDraftFromSnapshot(draftId, snapshot, originalDraft) {
+    const updateData = {
+        name: originalDraft.name + ' (从快照恢复)',
+        description: '从快照 v' + snapshot.version + ' 恢复，更新时间: ' + new Date().toLocaleString('zh-CN'),
+        params: snapshot.params,
+        templateContent: snapshot.templateContent,
+        status: 'DRAFT'
+    };
+
+    fetch('/api/templates/drafts/' + draftId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        return response.json().then(err => { throw new Error(err.message || '更新失败'); });
+    })
+    .then(data => {
+        Swal.fire('成功', '已从快照更新草稿', 'success');
+    })
+    .catch(error => {
+        Swal.fire('错误', '更新草稿失败: ' + error.message, 'error');
+    });
+}
+</script>
+</body>
+</html>

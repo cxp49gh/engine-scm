@@ -56,15 +56,25 @@ public class TemplateDraftServiceImpl implements TemplateDraftService {
 
         TemplateDraft draft = getById(id);
 
-        if (!TemplateDraftStatus.DRAFT.name().equals(draft.getStatus())) {
-            throw BizException.invalid("Only DRAFT can be updated");
+        // 模板内容允许 DRAFT 和 LOCKED 状态更新
+        if (!TemplateDraftStatus.DRAFT.name().equals(draft.getStatus())
+            && !TemplateDraftStatus.LOCKED.name().equals(draft.getStatus())) {
+            throw BizException.invalid("草稿状态不允许更新");
         }
 
-        draft.setName(update.getName());
-        draft.setDescription(update.getDescription());
-        draft.setTemplateContent(update.getTemplateContent());
-        draft.setDefaultParams(update.getDefaultParams());
-        draft.setRuntimeParamDefRef(update.getRuntimeParamDefRef());
+        // 部分更新：只更新非 null 的字段
+        if (update.getName() != null) {
+            draft.setName(update.getName());
+        }
+        if (update.getDescription() != null) {
+            draft.setDescription(update.getDescription());
+        }
+        if (update.getTemplateContent() != null) {
+            draft.setTemplateContent(update.getTemplateContent());
+        }
+        if (update.getParams() != null) {
+            draft.setParams(update.getParams());
+        }
         draft.setUpdatedAt(Instant.now());
 
         return repository.save(draft);
@@ -80,6 +90,21 @@ public class TemplateDraftServiceImpl implements TemplateDraftService {
         }
 
         draft.setStatus(TemplateDraftStatus.LOCKED.name());
+        draft.setUpdatedAt(Instant.now());
+
+        return repository.save(draft);
+    }
+
+    @Override
+    public TemplateDraft unlock(String id) {
+
+        TemplateDraft draft = getById(id);
+
+        if (!TemplateDraftStatus.LOCKED.name().equals(draft.getStatus())) {
+            throw BizException.invalid("Only LOCKED can be unlocked");
+        }
+
+        draft.setStatus(TemplateDraftStatus.DRAFT.name());
         draft.setUpdatedAt(Instant.now());
 
         return repository.save(draft);

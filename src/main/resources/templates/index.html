@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>数据分支管理系统</title>
+    <title>Engine SCM - 数据分支管理系统</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="/adminlte/plugins/fontawesome-free/css/all.min.css">
@@ -18,7 +18,7 @@
 
             <!-- Logo -->
             <a href="#" class="navbar-brand">
-                <span class="brand-text font-weight-light">数据分支管理系统</span>
+                <span class="brand-text font-weight-light">Engine SCM</span>
             </a>
 
             <!-- 折叠按钮（小屏） -->
@@ -33,22 +33,29 @@
 
                     <li class="nav-item">
                         <a href="#" class="nav-link active"
-                           onclick="loadPage(this, '/welcome')">
-                            <i class="fas fa-home mr-1"></i> 首页
+                           onclick="loadPage(this, '/templates/drafts')">
+                            <i class="fas fa-edit mr-1"></i> 1. 草稿管理
                         </a>
                     </li>
 
                     <li class="nav-item">
                         <a href="#" class="nav-link"
-                           onclick="loadPage(this, '/page/branches-bindings')">
-                            <i class="fas fa-code-branch mr-1"></i> 分支绑定管理
+                           onclick="loadPage(this, '/templates/snapshots')">
+                            <i class="fas fa-camera mr-1"></i> 2. 快照管理
                         </a>
                     </li>
 
                     <li class="nav-item">
                         <a href="#" class="nav-link"
-                           onclick="loadPage(this, '/page/branches')">
-                            <i class="fas fa-copy mr-1"></i> 分支绑定管理
+                           onclick="loadPage(this, '/templates/publish')">
+                            <i class="fas fa-upload mr-1"></i> 3. 发布管理
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="#" class="nav-link"
+                           onclick="loadPage(this, '/templates/dry-run')">
+                            <i class="fas fa-play-circle mr-1"></i> 4. 试运行
                         </a>
                     </li>
 
@@ -60,7 +67,7 @@
     <!-- 内容区域 -->
     <div class="content-wrapper">
         <iframe id="mainFrame"
-                src="/welcome"
+                src="/templates/drafts"
                 style="width:100%;height:calc(100vh - 56px);border:none;">
         </iframe>
     </div>

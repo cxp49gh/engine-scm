@@ -22,4 +22,6 @@ public interface TemplateSnapshotService {
     TemplateSnapshot getLatest(String templateId);
 
     List<TemplateSnapshot> listByTemplate(String templateId);
+
+    List<TemplateSnapshot> listAll();
 }

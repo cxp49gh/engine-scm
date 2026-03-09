@@ -1,6 +1,7 @@
 package com.engine.scm.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,23 +10,24 @@ import java.util.Map;
 
 @Data
 @Builder
+@Schema(description = "Dry-Run 执行结果")
 public class DryRunResult {
 
-    /** 合并后的最终参数 */
+    @Schema(description = "合并后的最终参数", example = "{\"timeout\": 3000, \"retries\": 3}")
     private Map<String, Object> mergedParams;
 
-    /** 渲染后的最终 JSON */
-    private JsonNode renderedJson;
+    @Schema(description = "渲染后的最终内容")
+    private String renderedContent;
 
-    /** 参数 Diff */
+    @Schema(description = "参数 Diff 列表")
     private List<ParamDiff> paramDiffs;
 
-    /** 风险汇总 */
+    @Schema(description = "风险汇总")
     private RiskSummary riskSummary;
 
-    /** 是否通过 */
+    @Schema(description = "是否通过", example = "true")
     private boolean passed;
 
-    /** 错误信息 */
+    @Schema(description = "错误信息")
     private String errorMessage;
 }

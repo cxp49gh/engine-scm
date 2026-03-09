@@ -8,7 +8,6 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 /**
  * 入口主程序
  *
- * @author jiang
  */
 @EnableDiscoveryClient
 @SpringBootApplication

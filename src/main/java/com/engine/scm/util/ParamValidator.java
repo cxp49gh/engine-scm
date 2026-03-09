@@ -1,11 +1,11 @@
 package com.engine.scm.util;
 
-import com.engine.scm.domain.RuntimeParamDefinition;
 import com.engine.scm.dto.ParamMeta;
 import com.engine.scm.dto.ParamType;
 import com.engine.scm.exception.BizException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 @Service
@@ -13,10 +13,14 @@ public class ParamValidator {
 
     public void validate(
             Map<String, Object> params,
-            RuntimeParamDefinition def) {
+            List<ParamMeta> paramMetaList) {
+
+        if (paramMetaList == null || paramMetaList.isEmpty()) {
+            return;
+        }
 
         Map<String, ParamMeta> metaMap =
-            def.getParams().stream()
+            paramMetaList.stream()
                .collect(Collectors.toMap(ParamMeta::getName, p -> p));
 
         // 1. 必填校验

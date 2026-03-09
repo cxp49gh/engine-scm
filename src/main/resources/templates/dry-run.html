@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>预发布校验 - Engine SCM</title>
+
+    <link rel="stylesheet" href="/adminlte/css/adminlte.min.css">
+    <link rel="stylesheet" href="/adminlte/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/datatables/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/sweetalert2/dist/sweetalert2.min.css">
+
+    <style>
+        .result-badge { padding: 5px 10px; border-radius: 4px; font-size: 14px; }
+        .result-pass { background: #28a745; color: white; }
+        .result-fail { background: #dc3545; color: white; }
+        .param-changed { background: #fff3cd; }
+    </style>
+</head>
+<body class="hold-transition">
+<div class="wrapper">
+    <div class="content-wrapper" style="margin-left: 0;">
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>预发布校验 (Dry-Run)</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/">首页</a></li>
+                            <li class="breadcrumb-item active">预发布校验</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container-fluid">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-vial"></i> 校验参数</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="dryRunForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>选择已发布快照 <span class="text-danger">*</span></label>
+                                        <select class="form-control" id="snapshotId" required onchange="loadSnapshotInfo()">
+                                            <option value="">请选择...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>严格模式</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="strictMode">
+                                            <label class="form-check-label">启用严格校验（有警告也失败）</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>运行时参数 (JSON)</label>
+                                        <textarea class="form-control" id="runtimeParams" rows="6" placeholder='{"param1": "value1", "param2": "value2"}'></textarea>
+                                        <small class="form-text text-muted">输入运行时参数，将与模板默认参数合并后进行校验</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <button type="button" class="btn btn-primary" onclick="runDryRun()">
+                                        <i class="fas fa-play"></i> 开始校验
+                                    </button>
+                                    <button type="button" class="btn btn-secondary ml-2" onclick="resetForm()">
+                                        <i class="fas fa-redo"></i> 重置
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="resultSection" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-clipboard-check"></i> 校验结果</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <h4 id="resultTitle"></h4>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card card-secondary">
+                                        <div class="card-header">
+                                            <h3 class="card-title">合并后的参数</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <pre id="mergedParams" style="max-height: 300px; overflow: auto;"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card card-secondary">
+                                        <div class="card-header">
+                                            <h3 class="card-title">渲染结果</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <pre id="renderedContent" style="max-height: 300px; overflow: auto;"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="card card-secondary">
+                                        <div class="card-header">
+                                            <h3 class="card-title">参数变更</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-bordered table-sm" id="paramDiffTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>参数名</th>
+                                                        <th>默认值</th>
+                                                        <th>运行时值</th>
+                                                        <th>状态</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="card card-secondary">
+                                        <div class="card-header">
+                                            <h3 class="card-title">风险评估</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="riskSummary"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-history"></i> 校验历史</h3>
+                    </div>
+                    <div class="card-body">
+                        <table id="historyTable" class="table table-bordered table-striped" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>快照ID</th>
+                                    <th>结果</th>
+                                    <th>错误信息</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.x
+        </div>
+        <strong>Copyright &copy; 2026 Engine SCM</strong>
+    </footer>
+</div>
+
+<script src="/adminlte/plugins/jquery/jquery.min.js"></script>
+<script src="/adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/adminlte/js/adminlte.min.js"></script>
+<script src="/datatables/js/jquery.dataTables.min.js"></script>
+<script src="/adminlte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/sweetalert2/dist/sweetalert2.min.js"></script>
+
+<script>
+let historyTable;
+const dryRunHistory = [];
+
+$(function() {
+    loadSnapshots();
+    initHistoryTable();
+});
+
+function loadSnapshots() {
+    // 先获取所有草稿，然后获取每个草稿的快照
+    fetch('/api/templates/drafts')
+        .then(response => response.json())
+        .then(drafts => {
+            const select = document.getElementById('snapshotId');
+            const promises = drafts.map(draft =>
+                fetch('/api/templates/snapshots?templateId=' + draft.id)
+                    .then(response => response.json())
+                    .then(snapshots => ({ draft, snapshots }))
+            );
+
+            Promise.all(promises).then(results => {
+                results.forEach(({ draft, snapshots }) => {
+                    snapshots.forEach(snapshot => {
+                        const option = document.createElement('option');
+                        option.value = snapshot.id;
+                        option.textContent = `[${draft.name}] ${snapshot.version} (${snapshot.riskLevel || 'N/A'})`;
+                        option.dataset.riskLevel = snapshot.riskLevel;
+                        select.appendChild(option);
+                    });
+                });
+            });
+        });
+}
+
+function initHistoryTable() {
+    historyTable = $('#historyTable').DataTable({
+        language: {
+            url: '/datatables/plugins/i18n/zh-CN.json'
+        },
+        data: dryRunHistory,
+        columns: [
+            { data: 'time' },
+            { data: 'snapshotId' },
+            {
+                data: 'passed',
+                render: function(data) {
+                    return '<span class="result-badge ' + (data ? 'result-pass' : 'result-fail') + '">' + (data ? '通过' : '失败') + '</span>';
+                }
+            },
+            { data: 'errorMessage' }
+        ]
+    });
+}
+
+function loadSnapshotInfo() {
+    // 可以在这里加载快照的详细信息
+}
+
+function runDryRun() {
+    const snapshotId = $('#snapshotId').val();
+    let runtimeParams = {};
+
+    if (!snapshotId) {
+        Swal.fire('错误', '请选择快照', 'error');
+        return;
+    }
+
+    try {
+        runtimeParams = JSON.parse($('#runtimeParams').val() || '{}');
+    } catch(e) {
+        Swal.fire('错误', '运行时参数 JSON 格式不正确', 'error');
+        return;
+    }
+
+    const request = {
+        snapshotId: snapshotId,
+        runtimeParams: runtimeParams,
+        strict: $('#strictMode').is(':checked')
+    };
+
+    Swal.fire({
+        title: '正在校验...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch('/api/template/dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+    })
+    .then(response => response.json())
+    .then(data => {
+        Swal.close();
+        showResult(data);
+
+        // 添加到历史记录
+        dryRunHistory.unshift({
+            time: new Date().toLocaleString('zh-CN'),
+            snapshotId: snapshotId,
+            passed: data.passed,
+            errorMessage: data.errorMessage || '-'
+        });
+        historyTable.clear().rows.add(dryRunHistory).draw();
+    })
+    .catch(error => {
+        Swal.fire('错误', '校验失败: ' + error.message, 'error');
+    });
+}
+
+function showResult(data) {
+    $('#resultSection').show();
+
+    if (data.passed) {
+        $('#resultTitle').html('<span class="text-success"><i class="fas fa-check-circle"></i> 校验通过</span>');
+    } else {
+        $('#resultTitle').html('<span class="text-danger"><i class="fas fa-times-circle"></i> 校验失败</span>');
+    }
+
+    $('#mergedParams').text(data.mergedParams ? JSON.stringify(data.mergedParams, null, 2) : '-');
+    $('#renderedContent').text(data.renderedContent || '-');
+
+    // 参数变更
+    const tbody = $('#paramDiffTable tbody');
+    tbody.empty();
+    if (data.paramDiffs && data.paramDiffs.length > 0) {
+        data.paramDiffs.forEach(diff => {
+            const row = $('<tr>');
+            row.append($('<td>').text(diff.name || '-'));
+            row.append($('<td>').text(diff.defaultValue !== undefined ? JSON.stringify(diff.defaultValue) : '-'));
+            row.append($('<td>').text(diff.runtimeValue !== undefined ? JSON.stringify(diff.runtimeValue) : '-'));
+            const status = diff.changed ? '<span class="badge badge-warning">已变更</span>' : '<span class="badge badge-secondary">未变更</span>';
+            row.append($('<td>').html(status));
+            tbody.append(row);
+        });
+    } else {
+        tbody.append($('<tr>').append($('<td colspan="4">').text('无参数变更')));
+    }
+
+    // 风险评估
+    if (data.riskSummary) {
+        let html = '<table class="table table-sm">';
+        html += '<tr><th>整体风险等级</th><td>' + getRiskText(data.riskSummary.riskLevel) + '</td></tr>';
+        if (data.riskSummary.riskFactors) {
+            html += '<tr><th>风险因素</th><td>' + data.riskSummary.riskFactors.join(', ') + '</td></tr>';
+        }
+        html += '</table>';
+        $('#riskSummary').html(html);
+    } else {
+        $('#riskSummary').text('-');
+    }
+
+    if (data.errorMessage && !data.passed) {
+        Swal.fire('校验失败', data.errorMessage, 'error');
+    }
+}
+
+function getRiskText(level) {
+    const map = { 'NONE': '无风险', 'LOW': '低风险', 'MEDIUM': '中风险', 'HIGH': '高风险' };
+    return map[level] || level || '无';
+}
+
+function resetForm() {
+    $('#dryRunForm')[0].reset();
+    $('#resultSection').hide();
+}
+</script>
+</body>
+</html>

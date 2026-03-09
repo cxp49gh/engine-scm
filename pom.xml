@@ -180,6 +180,7 @@
                 <artifactId>git-commit-id-plugin</artifactId>
                 <configuration>
                     <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>

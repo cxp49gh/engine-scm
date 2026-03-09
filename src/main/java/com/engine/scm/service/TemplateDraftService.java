@@ -17,6 +17,8 @@ public interface TemplateDraftService {
 
     TemplateDraft lock(String id);
 
+    TemplateDraft unlock(String id);
+
     void delete(String id);
 
     void updateCurrentVersion(String draftId, String version);

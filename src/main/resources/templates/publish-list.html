@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>模板发布 - Engine SCM</title>
+
+    <link rel="stylesheet" href="/adminlte/css/adminlte.min.css">
+    <link rel="stylesheet" href="/adminlte/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/datatables/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/sweetalert2/dist/sweetalert2.min.css">
+
+    <style>
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+        .status-DRAFT { background: #17a2b8; color: white; }
+        .status-LOCKED { background: #ffc107; color: black; }
+        .info-item { margin-bottom: 10px; }
+        .info-item label { display: block; font-weight: 600; color: #6c757d; font-size: 12px; margin-bottom: 4px; }
+        .info-item .info-value { display: block; color: #212529; font-size: 14px; }
+    </style>
+</head>
+<body class="hold-transition">
+<div class="wrapper">
+    <div class="content-wrapper" style="margin-left: 0;">
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>模板发布</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="/">首页</a></li>
+                            <li class="breadcrumb-item active">模板发布</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-upload"></i> 可发布的草稿</h3>
+                    </div>
+                    <div class="card-body">
+                        <table id="publishTable" class="table table-bordered table-striped" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>业务维度</th>
+                                    <th>引擎维度</th>
+                                    <th>环节</th>
+                                    <th>模板名称</th>
+                                    <th>当前版本</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.x
+        </div>
+        <strong>Copyright &copy; 2026 Engine SCM</strong>
+    </footer>
+</div>
+
+<div class="modal fade" id="publishModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">发布草稿</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="publishForm">
+                    <input type="hidden" id="publishDraftId">
+                    <div class="form-group">
+                        <label>版本号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="publishVersion" placeholder="不填则自动生成">
+                        <small class="form-text text-muted">版本号可选，不填则自动递增 (如 v1, v2, v3...)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>运行时参数覆盖 (JSON, 可选)</label>
+                        <textarea class="form-control" id="publishOverrides" rows="4" placeholder='{"param1": "value1"}'></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="doPublish()">确认发布</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="successModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success">
+                <h4 class="modal-title"><i class="fas fa-check-circle"></i> 发布成功</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 基本信息 -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle"></i> 发布信息</h5>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>快照ID</label>
+                            <span id="successId" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>版本</label>
+                            <span id="successVersion" class="info-value text-primary font-weight-bold"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>风险等级</label>
+                            <span id="successRiskLevel" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>发布时间</label>
+                            <span id="successPublishedAt" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 差异信息 -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-exchange-alt"></i> 差异信息</h5>
+                        <div id="successDiff" class="bg-light p-3" style="max-height: 200px; overflow: auto; font-size: 12px; white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/adminlte/plugins/jquery/jquery.min.js"></script>
+<script src="/adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/adminlte/js/adminlte.min.js"></script>
+<script src="/datatables/js/jquery.dataTables.min.js"></script>
+<script src="/adminlte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/sweetalert2/dist/sweetalert2.min.js"></script>
+
+<script>
+let table;
+
+$(function() {
+    initDataTable();
+});
+
+function initDataTable() {
+    table = $('#publishTable').DataTable({
+        language: {
+            url: '/datatables/plugins/i18n/zh-CN.json'
+        },
+        processing: true,
+        serverSide: false,
+        ajax: {
+            url: '/api/templates/drafts',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'id', visible: false },
+            { data: 'bizCode' },
+            { data: 'engineCode' },
+            { data: 'linkCode' },
+            { data: 'name' },
+            { data: 'currentVersion' },
+            {
+                data: 'status',
+                render: function(data) {
+                    return '<span class="status-badge status-' + data + '">' + getStatusText(data) + '</span>';
+                }
+            },
+            {
+                data: 'createdAt',
+                render: function(data) {
+                    return data ? new Date(data).toLocaleString('zh-CN') : '-';
+                }
+            },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    let buttons = '<div class="table-actions">';
+                    if (row.status === 'LOCKED') {
+                        buttons += '<button class="btn btn-primary btn-sm" onclick="showPublishModal(\'' + row.id + '\')" title="发布"><i class="fas fa-upload"></i> 发布</button>';
+                    } else if (row.status === 'DRAFT') {
+                        buttons += '<span class="text-muted"><i class="fas fa-lock"></i> 需先锁定</span>';
+                    }
+                    buttons += '</div>';
+                    return buttons;
+                }
+            }
+        ]
+    });
+}
+
+function getStatusText(status) {
+    const map = { 'DRAFT': '草稿', 'LOCKED': '已锁定', 'DEPRECATED': '已废弃' };
+    return map[status] || status;
+}
+
+function showPublishModal(draftId) {
+    $('#publishDraftId').val(draftId);
+    $('#publishVersion').val('');
+    $('#publishOverrides').val('');
+    $('#publishModal').modal('show');
+}
+
+function doPublish() {
+    const draftId = $('#publishDraftId').val();
+    const version = $('#publishVersion').val();
+    let overrides = {};
+
+    try {
+        overrides = JSON.parse($('#publishOverrides').val() || '{}');
+    } catch(e) {
+        Swal.fire('错误', '运行时参数 JSON 格式不正确', 'error');
+        return;
+    }
+
+    // 版本号可选，不填时自动递增
+    const url = version ? '/api/templates/publish/' + draftId + '?version=' + encodeURIComponent(version)
+                 : '/api/templates/publish/' + draftId;
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: Object.keys(overrides).length > 0 ? JSON.stringify(overrides) : undefined
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.code) {
+            Swal.fire('错误', data.message || '发布失败', 'error');
+            return;
+        }
+
+        $('#publishModal').modal('hide');
+        $('#successId').text(data.id);
+        $('#successVersion').text(data.version);
+        $('#successRiskLevel').text(getRiskText(data.riskLevel));
+        $('#successPublishedAt').text(data.publishedAt ? new Date(data.publishedAt).toLocaleString('zh-CN') : '-');
+        // 显示差异信息
+        if (data.diffFromPrev) {
+            $('#successDiff').text(JSON.stringify(data.diffFromPrev, null, 2));
+        } else {
+            $('#successDiff').text('首次发布，无差异');
+        }
+        $('#successModal').modal('show');
+
+        table.ajax.reload();
+    })
+    .catch(error => {
+        Swal.fire('错误', '发布失败: ' + error.message, 'error');
+    });
+}
+
+function getRiskText(level) {
+    const map = { 'NONE': '无', 'LOW': '低', 'MEDIUM': '中', 'HIGH': '高' };
+    return map[level] || level || '无';
+}
+</script>
+</body>
+</html>
