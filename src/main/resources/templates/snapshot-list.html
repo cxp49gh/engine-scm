@@ -49,11 +49,20 @@
                     <div class="card-body">
                         <form id="searchForm" class="form-inline">
                             <div class="form-group mx-2">
-                                <label>选择模板: </label>
-                                <select class="form-control ml-2" id="searchTemplateId" onchange="searchSnapshots()">
-                                    <option value="">全部</option>
-                                </select>
+                                <label>业务维度: </label>
+                                <input type="text" class="form-control ml-2" id="searchBizCode" placeholder="请输入业务维度">
                             </div>
+                            <div class="form-group mx-2">
+                                <label>环节: </label>
+                                <input type="text" class="form-control ml-2" id="searchLinkCode" placeholder="请输入环节">
+                            </div>
+                            <div class="form-group mx-2">
+                                <label>模板名称: </label>
+                                <input type="text" class="form-control ml-2" id="searchName" placeholder="请输入模板名称">
+                            </div>
+                            <button type="button" class="btn btn-primary mx-2" onclick="searchSnapshots()">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
                             <button type="button" class="btn btn-secondary mx-2" onclick="resetSearch()">
                                 <i class="fas fa-redo"></i> 重置
                             </button>
@@ -70,7 +79,8 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>模板ID</th>
+                                    <th>业务维度</th>
+                                    <th>环节</th>
                                     <th>模板名称</th>
                                     <th>版本</th>
                                     <th>风险等级</th>
@@ -176,25 +186,9 @@
 let table;
 
 $(function() {
-    loadTemplates();
     initDataTable();
+    searchSnapshots();
 });
-
-function loadTemplates() {
-    fetch('/api/templates/drafts')
-        .then(response => response.json())
-        .then(data => {
-            const select = document.getElementById('searchTemplateId');
-            data.forEach(function(item) {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name + ' (' + item.bizCode + ')';
-                select.appendChild(option);
-            });
-            // 加载全部模板的快照
-            searchSnapshots();
-        });
-}
 
 function initDataTable() {
     table = $('#snapshotTable').DataTable({
@@ -208,7 +202,8 @@ function initDataTable() {
         searching: false,
         columns: [
             { data: 'id', visible: false },
-            { data: 'templateId', visible: false },
+            { data: 'bizCode' },
+            { data: 'linkCode' },
             { data: 'templateName' },
             { data: 'version' },
             {
@@ -243,27 +238,42 @@ function getRiskText(level) {
 }
 
 function searchSnapshots() {
-    const templateId = $('#searchTemplateId').val();
-    let url = '/api/templates/snapshots';
-    if (templateId) {
-        url += '?templateId=' + templateId;
-    }
+    const bizCode = $('#searchBizCode').val();
+    const linkCode = $('#searchLinkCode').val();
+    const name = $('#searchName').val();
+
+    let url = '/api/templates/snapshots?';
+    if (bizCode) url += 'bizCode=' + encodeURIComponent(bizCode) + '&';
+    if (linkCode) url += 'linkCode=' + encodeURIComponent(linkCode) + '&';
+    if (name) url += 'name=' + encodeURIComponent(name) + '&';
+
+    // 移除末尾的 &
+    url = url.replace(/&$/, '');
 
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            // 获取所有草稿信息用于显示模板名称
+            // 获取所有草稿信息用于显示业务维度和环节
             fetch('/api/templates/drafts')
                 .then(res => res.json())
                 .then(drafts => {
                     const draftMap = {};
                     drafts.forEach(draft => {
-                        draftMap[draft.id] = draft.name;
+                        draftMap[draft.id] = draft;
                     });
 
-                    // 为每个快照设置模板名称
+                    // 为每个快照设置业务维度、环节和模板名称
                     data.forEach(snapshot => {
-                        snapshot.templateName = draftMap[snapshot.templateId] || '未知模板';
+                        const draft = draftMap[snapshot.templateId];
+                        if (draft) {
+                            snapshot.bizCode = draft.bizCode || '';
+                            snapshot.linkCode = draft.linkCode || '';
+                            snapshot.templateName = draft.name || '未知模板';
+                        } else {
+                            snapshot.bizCode = '';
+                            snapshot.linkCode = '';
+                            snapshot.templateName = '未知模板';
+                        }
                     });
 
                     table.clear();
@@ -281,7 +291,7 @@ function searchSnapshots() {
 }
 
 function resetSearch() {
-    $('#searchTemplateId').val('');
+    $('#searchForm')[0].reset();
     searchSnapshots();
 }
 

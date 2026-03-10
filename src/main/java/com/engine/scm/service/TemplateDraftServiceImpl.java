@@ -43,12 +43,32 @@ public class TemplateDraftServiceImpl implements TemplateDraftService {
     }
 
     @Override
-    public List<TemplateDraft> list(String bizCode, TemplateDraftStatus status) {
-        if (bizCode != null && status != null) {
-            return repository.findByBizCodeAndStatus(
-                    bizCode, status.name());
+    public List<TemplateDraft> list(String bizCode, String linkCode, String name, TemplateDraftStatus status) {
+        List<TemplateDraft> drafts = repository.findAll();
+
+        // 过滤条件
+        if (bizCode != null && !bizCode.isEmpty()) {
+            drafts = drafts.stream()
+                    .filter(d -> d.getBizCode() != null && d.getBizCode().equals(bizCode))
+                    .collect(java.util.stream.Collectors.toList());
         }
-        return repository.findAll();
+        if (linkCode != null && !linkCode.isEmpty()) {
+            drafts = drafts.stream()
+                    .filter(d -> d.getLinkCode() != null && d.getLinkCode().equals(linkCode))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        if (name != null && !name.isEmpty()) {
+            drafts = drafts.stream()
+                    .filter(d -> d.getName() != null && d.getName().contains(name))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        if (status != null) {
+            drafts = drafts.stream()
+                    .filter(d -> d.getStatus() != null && d.getStatus().equals(status.name()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        return drafts;
     }
 
     @Override
@@ -74,6 +94,9 @@ public class TemplateDraftServiceImpl implements TemplateDraftService {
         }
         if (update.getParams() != null) {
             draft.setParams(update.getParams());
+        }
+        if (update.getCurrentVersion() != null) {
+            draft.setCurrentVersion(update.getCurrentVersion());
         }
         draft.setUpdatedAt(Instant.now());
 
@@ -104,6 +127,11 @@ public class TemplateDraftServiceImpl implements TemplateDraftService {
             throw BizException.invalid("Only LOCKED can be unlocked");
         }
 
+        // 已发布的草稿不允许解锁
+        if (draft.getCurrentVersion() != null && !draft.getCurrentVersion().isEmpty()) {
+            throw BizException.invalid("Published draft cannot be unlocked");
+        }
+
         draft.setStatus(TemplateDraftStatus.DRAFT.name());
         draft.setUpdatedAt(Instant.now());
 
@@ -115,8 +143,14 @@ public class TemplateDraftServiceImpl implements TemplateDraftService {
 
         TemplateDraft draft = getById(id);
 
+        // 只有未发布的 DRAFT 状态才能删除
         if (!TemplateDraftStatus.DRAFT.name().equals(draft.getStatus())) {
             throw BizException.invalid("Only DRAFT can be deleted");
+        }
+
+        // 已发布的草稿不允许删除
+        if (draft.getCurrentVersion() != null && !draft.getCurrentVersion().isEmpty()) {
+            throw BizException.invalid("Published draft cannot be deleted");
         }
 
         repository.deleteById(id);

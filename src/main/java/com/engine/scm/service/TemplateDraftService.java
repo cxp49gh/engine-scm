@@ -11,7 +11,7 @@ public interface TemplateDraftService {
 
     TemplateDraft getById(String id);
 
-    List<TemplateDraft> list(String bizCode, TemplateDraftStatus status);
+    List<TemplateDraft> list(String bizCode, String linkCode, String name, TemplateDraftStatus status);
 
     TemplateDraft update(String id, TemplateDraft update);
 

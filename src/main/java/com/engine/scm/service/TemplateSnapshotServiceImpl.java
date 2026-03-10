@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class TemplateSnapshotServiceImpl
         implements TemplateSnapshotService {
 
     private final TemplateSnapshotRepository repository;
+    private final TemplateDraftService draftService;
 
     @Override
     public TemplateSnapshot publish(
@@ -158,5 +161,58 @@ public class TemplateSnapshotServiceImpl
     @Override
     public List<TemplateSnapshot> listAll() {
         return repository.findAll();
+    }
+
+    @Override
+    public List<TemplateSnapshot> list(String templateId, String bizCode, String linkCode, String name) {
+        // 获取所有草稿
+        List<TemplateDraft> allDrafts = draftService.list(null, null, null, null);
+
+        // 构建草稿ID到草稿的映射
+        Map<String, TemplateDraft> draftMap = allDrafts.stream()
+                .collect(Collectors.toMap(TemplateDraft::getId, d -> d));
+
+        // 获取所有快照
+        List<TemplateSnapshot> snapshots = repository.findAll();
+
+        // 过滤
+        return snapshots.stream()
+                .filter(snapshot -> {
+                    TemplateDraft draft = draftMap.get(snapshot.getTemplateId());
+                    if (draft == null) {
+                        return false;
+                    }
+
+                    // 模板ID过滤
+                    if (templateId != null && !templateId.isEmpty()) {
+                        if (!templateId.equals(snapshot.getTemplateId())) {
+                            return false;
+                        }
+                    }
+
+                    // 业务维度过滤
+                    if (bizCode != null && !bizCode.isEmpty()) {
+                        if (draft.getBizCode() == null || !draft.getBizCode().equals(bizCode)) {
+                            return false;
+                        }
+                    }
+
+                    // 环节过滤
+                    if (linkCode != null && !linkCode.isEmpty()) {
+                        if (draft.getLinkCode() == null || !draft.getLinkCode().equals(linkCode)) {
+                            return false;
+                        }
+                    }
+
+                    // 模板名称模糊匹配
+                    if (name != null && !name.isEmpty()) {
+                        if (draft.getName() == null || !draft.getName().contains(name)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                })
+                .collect(Collectors.toList());
     }
 }

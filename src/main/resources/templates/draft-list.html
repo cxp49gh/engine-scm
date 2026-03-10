@@ -66,6 +66,14 @@
                                 <input type="text" class="form-control ml-2" id="searchBizCode" placeholder="请输入业务维度">
                             </div>
                             <div class="form-group mx-2">
+                                <label for="searchLinkCode">环节: </label>
+                                <input type="text" class="form-control ml-2" id="searchLinkCode" placeholder="请输入环节">
+                            </div>
+                            <div class="form-group mx-2">
+                                <label for="searchName">模板名称: </label>
+                                <input type="text" class="form-control ml-2" id="searchName" placeholder="请输入模板名称">
+                            </div>
+                            <div class="form-group mx-2">
                                 <label for="searchStatus">状态: </label>
                                 <select class="form-control ml-2" id="searchStatus">
                                     <option value="">全部</option>
@@ -677,13 +685,23 @@ function initDataTable() {
                 render: function(data, type, row) {
                     let buttons = '<div class="table-actions">';
                     buttons += '<button class="btn btn-info btn-sm" onclick="viewDraft(\'' + row.id + '\')" title="查看"><i class="fas fa-eye"></i></button> ';
-                    if (row.status === 'DRAFT') {
+                    if (row.status === 'DRAFT' || row.status === 'LOCKED') {
                         buttons += '<button class="btn btn-primary btn-sm" onclick="editDraft(\'' + row.id + '\')" title="编辑"><i class="fas fa-edit"></i></button> ';
+                    }
+                    if (row.status === 'DRAFT') {
                         buttons += '<button class="btn btn-warning btn-sm" onclick="lockDraft(\'' + row.id + '\')" title="锁定"><i class="fas fa-lock"></i></button> ';
                     } else if (row.status === 'LOCKED') {
-                        buttons += '<button class="btn btn-success btn-sm" onclick="unlockDraft(\'' + row.id + '\')" title="解锁"><i class="fas fa-lock-open"></i></button> ';
+                        // 显示发布按钮
+                        buttons += '<button class="btn btn-success btn-sm" onclick="showPublishModal(\'' + row.id + '\')" title="发布"><i class="fas fa-upload"></i></button> ';
+                        // 未发布过才显示解锁按钮
+                        if (!row.currentVersion) {
+                            buttons += '<button class="btn btn-secondary btn-sm" onclick="unlockDraft(\'' + row.id + '\')" title="解锁"><i class="fas fa-lock-open"></i></button> ';
+                        }
                     }
-                    buttons += '<button class="btn btn-danger btn-sm" onclick="deleteDraft(\'' + row.id + '\')" title="删除"><i class="fas fa-trash"></i></button>';
+                    // 未发布过且是 DRAFT 状态才显示删除按钮
+                    if (row.status === 'DRAFT' && !row.currentVersion) {
+                        buttons += '<button class="btn btn-danger btn-sm" onclick="deleteDraft(\'' + row.id + '\')" title="删除"><i class="fas fa-trash"></i></button>';
+                    }
                     buttons += '</div>';
                     return buttons;
                 }
@@ -699,12 +717,16 @@ function getStatusText(status) {
 
 function searchDrafts() {
     const bizCode = $('#searchBizCode').val();
+    const linkCode = $('#searchLinkCode').val();
+    const name = $('#searchName').val();
     const status = $('#searchStatus').val();
-    
+
     let url = '/api/templates/drafts?';
-    if (bizCode) url += 'bizCode=' + bizCode + '&';
+    if (bizCode) url += 'bizCode=' + encodeURIComponent(bizCode) + '&';
+    if (linkCode) url += 'linkCode=' + encodeURIComponent(linkCode) + '&';
+    if (name) url += 'name=' + encodeURIComponent(name) + '&';
     if (status) url += 'status=' + status;
-    
+
     table.ajax.url(url).load();
 }
 
@@ -896,6 +918,140 @@ function deleteDraft(id) {
         }
     });
 }
+
+/* ================= 发布模态框 ================= */
+let currentPublishDraftId = null;
+
+function showPublishModal(draftId) {
+    currentPublishDraftId = draftId;
+    $('#publishVersion').val('');
+    $('#publishModal').modal('show');
+}
+
+function doPublish() {
+    if (!currentPublishDraftId) {
+        Swal.fire('错误', '未选择草稿', 'error');
+        return;
+    }
+
+    const version = $('#publishVersion').val();
+    const url = version ? '/api/templates/publish/' + currentPublishDraftId + '?version=' + encodeURIComponent(version)
+                 : '/api/templates/publish/' + currentPublishDraftId;
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.code) {
+            Swal.fire('错误', data.message || '发布失败', 'error');
+            return;
+        }
+
+        $('#publishModal').modal('hide');
+        $('#successId').text(data.id);
+        $('#successVersion').text(data.version);
+        $('#successRiskLevel').text(getPublishRiskText(data.riskLevel));
+        $('#successPublishedAt').text(data.publishedAt ? new Date(data.publishedAt).toLocaleString('zh-CN') : '-');
+        if (data.diffFromPrev) {
+            $('#successDiff').text(JSON.stringify(data.diffFromPrev, null, 2));
+        } else {
+            $('#successDiff').text('首次发布，无差异');
+        }
+        $('#successModal').modal('show');
+
+        table.ajax.reload();
+    })
+    .catch(error => {
+        Swal.fire('错误', '发布失败: ' + error.message, 'error');
+    });
+}
+
+function getPublishRiskText(level) {
+    const map = { 'NONE': '无', 'LOW': '低', 'MEDIUM': '中', 'HIGH': '高' };
+    return map[level] || level || '无';
+}
+</script>
+
+<!-- 发布模态框 -->
+<div class="modal fade" id="publishModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">发布草稿</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="publishForm">
+                    <div class="form-group">
+                        <label>版本号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="publishVersion" placeholder="不填则自动生成">
+                        <small class="form-text text-muted">版本号可选，不填则自动递增 (如 v1, v2, v3...)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="doPublish()">确认发布</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 发布成功模态框 -->
+<div class="modal fade" id="successModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success">
+                <h4 class="modal-title"><i class="fas fa-check-circle"></i> 发布成功</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle"></i> 发布信息</h5>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>快照ID</label>
+                            <span id="successId" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>版本</label>
+                            <span id="successVersion" class="info-value text-primary font-weight-bold"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>风险等级</label>
+                            <span id="successRiskLevel" class="info-value"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-item">
+                            <label>发布时间</label>
+                            <span id="successPublishedAt" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-exchange-alt"></i> 差异信息</h5>
+                        <pre id="successDiff" class="bg-light p-3" style="max-height: 200px; overflow: auto; font-size: 12px; white-space: pre-wrap;"></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
 </script>
 </body>
 </html>

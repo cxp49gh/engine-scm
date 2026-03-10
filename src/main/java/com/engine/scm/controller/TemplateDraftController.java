@@ -36,12 +36,14 @@ public class TemplateDraftController {
     }
 
     @GetMapping
-    @Operation(summary = "查询草稿列表", description = "根据业务编码和状态筛选草稿")
+    @Operation(summary = "查询草稿列表", description = "根据业务编码、环节和状态筛选草稿")
     public List<TemplateDraft> list(
             @Parameter(description = "业务维度编码") @RequestParam(required = false) String bizCode,
+            @Parameter(description = "环节") @RequestParam(required = false) String linkCode,
+            @Parameter(description = "模板名称（模糊匹配）") @RequestParam(required = false) String name,
             @Parameter(description = "草稿状态") @RequestParam(required = false) TemplateDraftStatus status
     ) {
-        return templateDraftService.list(bizCode,status);
+        return templateDraftService.list(bizCode, linkCode, name, status);
     }
 
     /* ================= 更新 Draft ================= */

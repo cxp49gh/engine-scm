@@ -23,7 +23,7 @@ public class TemplatePublishController {
     @PostMapping("/{draftId}")
     @Operation(
             summary = "发布模板",
-            description = "将草稿模板发布为新版本，执行渲染、校验、Diff 和风险评估。不指定版本号时自动递增"
+            description = "将草稿发布为新版本，创建快照。不指定版本号时自动递增"
     )
     public TemplateSnapshot publish(
             @Parameter(description = "草稿 ID", required = true) @PathVariable String draftId,

@@ -1,10 +1,12 @@
 package com.engine.scm.service;
 
 import com.engine.scm.domain.RuntimeContext;
+import com.engine.scm.dto.ParamDiff;
 import com.engine.scm.dto.ParamMergeResult;
 import com.engine.scm.dto.ParamMeta;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +29,24 @@ public class ParamMergeServiceImpl implements ParamMergeService {
             }
         }
 
+        // 计算 Diff：运行时参数覆盖了哪些默认值
+        List<ParamDiff> diffs = new ArrayList<>();
+        if (runtimeOverrides != null && !runtimeOverrides.isEmpty()) {
+            for (Map.Entry<String, Object> entry : runtimeOverrides.entrySet()) {
+                Object defaultValue = defaults.get(entry.getKey());
+                diffs.add(ParamDiff.builder()
+                        .paramName(entry.getKey())
+                        .oldValue(defaultValue)
+                        .newValue(entry.getValue())
+                        .build());
+            }
+        }
+
         // 合并：默认值 + 运行时参数（运行时参数覆盖默认值）
         Map<String, Object> merged = merge(defaults, runtimeOverrides, null);
         return ParamMergeResult.builder()
                 .params(merged)
+                .diffs(diffs)
                 .build();
     }
 

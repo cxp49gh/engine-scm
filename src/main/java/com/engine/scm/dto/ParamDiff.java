@@ -2,6 +2,7 @@ package com.engine.scm.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
  * 用于记录参数合并过程中的变更内容
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "参数差异")

@@ -25,15 +25,14 @@ public class TemplateSnapshotController {
     }
 
     @GetMapping
-    @Operation(summary = "查询快照列表", description = "根据模板 ID 查询所有快照")
+    @Operation(summary = "查询快照列表", description = "根据条件查询快照")
     public List<TemplateSnapshot> listByTemplate(
-            @Parameter(description = "模板/草稿 ID", required = false) @RequestParam(required = false) String templateId
+            @Parameter(description = "模板/草稿 ID", required = false) @RequestParam(required = false) String templateId,
+            @Parameter(description = "业务维度", required = false) @RequestParam(required = false) String bizCode,
+            @Parameter(description = "环节", required = false) @RequestParam(required = false) String linkCode,
+            @Parameter(description = "模板名称（模糊匹配）", required = false) @RequestParam(required = false) String name
     ) {
-        if (templateId != null && !templateId.isEmpty()) {
-            return snapshotService.listByTemplate(templateId);
-        } else {
-            return snapshotService.listAll();
-        }
+        return snapshotService.list(templateId, bizCode, linkCode, name);
     }
 
     @GetMapping("/latest")

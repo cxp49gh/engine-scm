@@ -24,4 +24,6 @@ public interface TemplateSnapshotService {
     List<TemplateSnapshot> listByTemplate(String templateId);
 
     List<TemplateSnapshot> listAll();
+
+    List<TemplateSnapshot> list(String templateId, String bizCode, String linkCode, String name);
 }

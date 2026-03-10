@@ -19,4 +19,8 @@ public interface TemplateDraftRepository
             String bizCode,
             String status
     );
+
+    List<TemplateDraft> findByLinkCode(String linkCode);
+
+    List<TemplateDraft> findByNameContaining(String name);
 }
